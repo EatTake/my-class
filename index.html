@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Class - 我的课堂</title>
+  <meta name="description" content="My Class - 一款有趣的2D俯视角课堂模拟小游戏">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+  <!-- ==================== 开始界面 ==================== -->
+  <div id="startScreen" class="screen active">
+    <div class="start-container">
+      <div class="title-glow"></div>
+      <h1 class="game-title">My Class</h1>
+      <p class="subtitle">🏫 我的课堂 🏫</p>
+
+      <!-- 角色创建区 -->
+      <div class="character-creation">
+        <div class="input-group">
+          <label for="teacherName">👨‍🏫</label>
+          <input type="text" id="teacherName" placeholder="请输入老师的名字" maxlength="10" autocomplete="off">
+        </div>
+        <div class="error-message" id="nameError"></div>
+
+        <!-- 性别选择 -->
+        <div class="gender-select">
+          <label class="gender-option selected">
+            <input type="radio" name="teacherGender" value="男" checked>
+            <span class="gender-icon">👨</span>
+            <span class="gender-text">男老师</span>
+          </label>
+          <label class="gender-option">
+            <input type="radio" name="teacherGender" value="女">
+            <span class="gender-icon">👩</span>
+            <span class="gender-text">女老师</span>
+          </label>
+        </div>
+
+        <!-- 新建游戏按钮 -->
+        <button id="newGameBtn" class="new-game-btn">
+          <span class="btn-icon">🎮</span>
+          <span class="btn-text">新建游戏</span>
+        </button>
+      </div>
+
+      <!-- 历史存档列表 -->
+      <div class="saves-section">
+        <h3 class="saves-title">📁 历史存档</h3>
+        <div id="savesList" class="saves-list">
+          <!-- 动态生成存档卡片 -->
+        </div>
+        <div id="noSavesTip" class="no-saves-tip">暂无存档记录</div>
+      </div>
+
+      <div class="decorations">
+        <span class="float-item" style="--delay:0s; --x:-120px; --y:60px">📚</span>
+        <span class="float-item" style="--delay:0.5s; --x:130px; --y:-40px">✏️</span>
+        <span class="float-item" style="--delay:1s; --x:-100px; --y:-80px">🎒</span>
+        <span class="float-item" style="--delay:1.5s; --x:110px; --y:70px">📐</span>
+        <span class="float-item" style="--delay:2s; --x:0px; --y:100px">🍎</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== 游戏主界面 ==================== -->
+  <div id="gameScreen" class="screen">
+    <div class="classroom">
+
+      <!-- 室内 3D 结构 -->
+      <div class="floor-tiles"></div>
+
+      <div class="room-wall wall-left">
+        <div class="room-door door-back">
+          <div class="door-window"></div>
+          <div class="door-handle"></div>
+        </div>
+      </div>
+
+      <div class="room-wall wall-right">
+        <div class="room-door door-front">
+          <div class="door-window"></div>
+          <div class="door-handle"></div>
+        </div>
+      </div>
+
+      <!-- 墙壁正前方装饰层 -->
+      <div class="wall-decorations">
+        <!-- 左窗户 -->
+        <div class="window window-left">
+          <div class="window-frame">
+            <div class="window-glass">
+              <div class="window-sky"></div>
+              <div class="window-cloud cloud-1"></div>
+              <div class="window-cloud cloud-2"></div>
+              <div class="window-tree"></div>
+            </div>
+            <div class="window-divider-h"></div>
+            <div class="window-divider-v"></div>
+          </div>
+          <div class="window-curtain curtain-left"></div>
+          <div class="window-curtain curtain-right"></div>
+        </div>
+        <!-- 右窗户 -->
+        <div class="window window-right">
+          <div class="window-frame">
+            <div class="window-glass">
+              <div class="window-sky"></div>
+              <div class="window-cloud cloud-1" style="animation-delay: 1s"></div>
+              <div class="window-cloud cloud-2" style="animation-delay: 2.5s"></div>
+              <div class="window-tree" style="left: 60%"></div>
+            </div>
+            <div class="window-divider-h"></div>
+            <div class="window-divider-v"></div>
+          </div>
+          <div class="window-curtain curtain-left"></div>
+          <div class="window-curtain curtain-right"></div>
+        </div>
+        <!-- 时钟 -->
+        <div class="wall-clock">
+          <div class="clock-face">
+            <div class="clock-dot"></div>
+            <div class="clock-hand clock-hour"></div>
+            <div class="clock-hand clock-minute"></div>
+            <span class="clock-mark" style="--rot:0deg"></span>
+            <span class="clock-mark" style="--rot:90deg"></span>
+            <span class="clock-mark" style="--rot:180deg"></span>
+            <span class="clock-mark" style="--rot:270deg"></span>
+          </div>
+        </div>
+        <!-- 国旗 -->
+        <div class="wall-flag">🇨🇳</div>
+        <!-- 奖状/标语 -->
+        <div class="wall-banner banner-left">⭐ 优秀班级 ⭐</div>
+        <div class="wall-banner banner-right">📖 好好学习 📖</div>
+      </div>
+
+      <!-- 黑板区域 -->
+      <div class="blackboard-area">
+        <div class="blackboard">
+          <div class="blackboard-frame">
+            <div class="blackboard-surface">
+              <p class="chalk-text" id="chalkText">欢迎来到课堂！</p>
+            </div>
+            <!-- 功能按钮组 -->
+            <div class="blackboard-btn-group">
+              <button id="earlyDismissBtn" class="blackboard-btn early-dismiss-btn" title="提前下课">
+                <span class="btn-icon">🔔</span>
+              </button>
+              <button id="shopBtn" class="blackboard-btn shop-btn" title="商店">
+                <span class="btn-icon">🛒</span>
+              </button>
+              <button id="inventoryBtn" class="blackboard-btn inventory-btn" title="背包">
+                <span class="btn-icon">🎒</span>
+              </button>
+            </div>
+          </div>
+          <!-- 粉笔槽 -->
+          <div class="chalk-tray">
+            <span class="chalk white"></span>
+            <span class="chalk yellow"></span>
+            <span class="chalk pink"></span>
+            <span class="chalk blue"></span>
+          </div>
+        </div>
+        <!-- 血条显示在粉笔槽下方 -->
+        <div class="hp-bar-container">
+          <div class="hp-track">
+            <div class="hp-fill" id="teacherHpFill" style="width: 100%;"></div>
+            <div class="hp-segments">
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+              <div class="hp-segment"></div><div class="hp-segment"></div>
+            </div>
+            <div class="hp-value" id="teacherHpValue">10000</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 教师区域 -->
+      <div class="teacher-area">
+        <div class="teacher" id="teacher">
+          <img id="teacherImg" class="character-img teacher-img" src="assets/characters/teacher_standing.png" alt="老师">
+        </div>
+      </div>
+
+      <!-- 学生座位区域 - 2排 x 3列 -->
+      <div class="desks-area">
+        <!-- 第1排 -->
+        <div class="desk-row">
+          <div class="desk-unit">
+            <div class="student boy" data-name="小明" data-gender="男" data-id="xm">
+              <div class="character-img-container student-img">
+                <img class="state-sitting active" src="assets/characters/xm_sitting.png" alt="小明 坐着">
+                <img class="state-raising" src="assets/characters/xm_raising.png" alt="小明 举手">
+                <img class="state-standing" src="assets/characters/xm_standing.png" alt="小明 站立">
+              </div>
+              <span class="student-label">小明</span>
+            </div>
+          </div>
+          <div class="desk-unit">
+            <div class="student girl" data-name="小红" data-gender="女" data-id="xh">
+              <div class="character-img-container student-img">
+                <img class="state-sitting active" src="assets/characters/xh_sitting.png" alt="小红 坐着">
+                <img class="state-raising" src="assets/characters/xh_raising.png" alt="小红 举手">
+                <img class="state-standing" src="assets/characters/xh_standing.png" alt="小红 站立">
+              </div>
+              <span class="student-label">小红</span>
+            </div>
+          </div>
+          <div class="desk-unit">
+            <div class="student girl" data-name="小丽" data-gender="女" data-id="xl">
+              <div class="character-img-container student-img">
+                <img class="state-sitting active" src="assets/characters/xl_sitting.png" alt="小丽 坐着">
+                <img class="state-raising" src="assets/characters/xl_raising.png" alt="小丽 举手">
+                <img class="state-standing" src="assets/characters/xl_standing.png" alt="小丽 站立">
+              </div>
+              <span class="student-label">小丽</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第2排 -->
+        <div class="desk-row">
+          <div class="desk-unit">
+            <div class="student boy" data-name="小刚" data-gender="男" data-id="xg">
+              <div class="character-img-container student-img">
+                <img class="state-sitting active" src="assets/characters/xg_sitting.png" alt="小刚 坐着">
+                <img class="state-raising" src="assets/characters/xg_raising.png" alt="小刚 举手">
+                <img class="state-standing" src="assets/characters/xg_standing.png" alt="小刚 站立">
+              </div>
+              <span class="student-label">小刚</span>
+            </div>
+          </div>
+          <div class="desk-unit">
+            <div class="student boy" data-name="小强" data-gender="男" data-id="xq">
+              <div class="character-img-container student-img">
+                <img class="state-sitting active" src="assets/characters/xq_sitting.png" alt="小强 坐着">
+                <img class="state-raising" src="assets/characters/xq_raising.png" alt="小强 举手">
+                <img class="state-standing" src="assets/characters/xq_standing.png" alt="小强 站立">
+              </div>
+              <span class="student-label">小强</span>
+            </div>
+          </div>
+          <div class="desk-unit">
+            <div class="student girl" data-name="小芳" data-gender="女" data-id="xf">
+              <div class="character-img-container student-img">
+                <img class="state-sitting active" src="assets/characters/xf_sitting.png" alt="小芳 坐着">
+                <img class="state-raising" src="assets/characters/xf_raising.png" alt="小芳 举手">
+                <img class="state-standing" src="assets/characters/xf_standing.png" alt="小芳 站立">
+              </div>
+              <span class="student-label">小芳</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 教室地板装饰 -->
+      <div class="floor-tiles"></div>
+
+      <!-- ================= 特效与互动浮层 ================= -->
+
+      <!-- 老师评判面板 -->
+      <div id="judgmentPanel" class="judgment-overlay">
+        <div class="judgment-box">
+          <h3>请老师评判：</h3>
+          <p id="judgmentStatement" class="judgment-statement">TA 答对了吗？</p>
+          <div class="judgment-buttons">
+            <button class="judge-btn judge-correct" id="btnJudgeCorrect">
+              <span class="judge-icon">✔️</span> 答对了
+            </button>
+            <button class="judge-btn judge-wrong" id="btnJudgeWrong">
+              <span class="judge-icon">❌</span> 答错了
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 课间倒计时 -->
+      <div id="breakTimer" class="break-timer hidden">30</div>
+
+      <!-- 课间结束回座位按钮 -->
+      <button id="btnEndBreak" class="btn-end-break hidden">上课啦，都回座位！</button>
+
+      <!-- 课间打闹处理面板 -->
+      <div id="reactionPanel" class="reaction-panel hidden">
+        <button class="reaction-btn punish-btn" id="btnPunish">🤬 批评他们</button>
+        <button class="reaction-btn comfort-btn" id="btnComfort">❤️ 安慰他们</button>
+      </div>
+
+      <!-- 屏幕红闪层 -->
+      <div id="flashRedOverlay" class="flash-red-overlay"></div>
+      <!-- 校长突击 -->
+      <img id="principalHead" class="principal-head img-principal" src="principal.png" alt="Angry Principal">
+    </div>
+
+    <!-- 底部 UI 条：事件通知滚屏 -->
+    <div class="bottom-bar event-log-bar">
+      <div class="event-log-container" id="eventLogContainer">
+        <!-- 动态塞入事件消息 -->
+      </div>
+    </div>
+  </div>
+
+  <!-- 动态特效容器 - 挂在 body 下以使用视口坐标（与 getBoundingClientRect 对齐） -->
+  <div id="effectsContainer" class="effects-container"></div>
+
+  <!-- 商店面板 -->
+  <div id="shopPanel" class="panel-overlay hidden">
+    <div class="panel-backdrop"></div>
+    <div class="panel-content shop-content">
+      <div class="panel-header">
+        <h2>🛒 教师用品商店</h2>
+        <button class="panel-close-btn" id="shopCloseBtn">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="shop-items">
+          <div class="shop-item" data-item="megaphone">
+            <div class="item-icon">📢</div>
+            <div class="item-info">
+              <div class="item-name">超级大喇叭</div>
+              <div class="item-desc">让全班学生注意力+2</div>
+            </div>
+            <div class="item-price">¥500</div>
+            <button class="buy-btn" data-item="megaphone">购买</button>
+          </div>
+          <div class="shop-item" data-item="ruler">
+            <div class="item-icon">📏</div>
+            <div class="item-info">
+              <div class="item-name">无敌戒尺</div>
+              <div class="item-desc">让全班淘气值-2</div>
+            </div>
+            <div class="item-price">¥500</div>
+            <button class="buy-btn" data-item="ruler">购买</button>
+          </div>
+          <div class="shop-item" data-item="homework">
+            <div class="item-icon">📝</div>
+            <div class="item-info">
+              <div class="item-name">课后习题</div>
+              <div class="item-desc">让全班正确率+2</div>
+            </div>
+            <div class="item-price">¥500</div>
+            <button class="buy-btn" data-item="homework">购买</button>
+          </div>
+          <div class="shop-item" data-item="flower">
+            <div class="item-icon">🌸</div>
+            <div class="item-info">
+              <div class="item-name">无尽小红花</div>
+              <div class="item-desc">让全班心情+2</div>
+            </div>
+            <div class="item-price">¥500</div>
+            <button class="buy-btn" data-item="flower">购买</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 背包面板 -->
+  <div id="inventoryPanel" class="panel-overlay hidden">
+    <div class="panel-backdrop"></div>
+    <div class="panel-content inventory-content">
+      <div class="panel-header">
+        <h2>🎒 我的背包</h2>
+        <button class="panel-close-btn" id="inventoryCloseBtn">✕</button>
+      </div>
+      <div class="panel-body">
+        <div class="inventory-items" id="inventoryItems">
+          <!-- 动态生成背包物品 -->
+        </div>
+        <div class="inventory-empty" id="inventoryEmpty">背包空空如也~</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 删除存档确认对话框 -->
+  <div id="deleteConfirmDialog" class="confirm-dialog-overlay hidden">
+    <div class="confirm-dialog-box">
+      <div class="confirm-dialog-icon">⚠️</div>
+      <h3 class="confirm-dialog-title">确认删除</h3>
+      <p class="confirm-dialog-message">确定要删除存档吗？此操作不可恢复</p>
+      <div class="confirm-dialog-buttons">
+        <button class="confirm-dialog-btn cancel-btn" id="deleteCancelBtn">取消</button>
+        <button class="confirm-dialog-btn confirm-btn" id="deleteConfirmBtn">确认</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="game.js"></script>
+</body>
+
+</html>
