@@ -4,39 +4,41 @@
 
 ---
 
-## 一、 项目代码框架 (Project Architecture)
+## 一、 项目代码框架
 
-项目采用纯原生技术栈 (Vanilla Stack) 开发，实现了高度动态的课堂模拟体验：
+项目采用纯原生技术栈 开发，实现了高度动态的课堂模拟体验：
 - **前端核心**：HTML5 + CSS3 + JavaScript (ES6+)。
 - **渲染模式**：DOM 驱动的组件化渲染，利用 CSS Grid/Flex 分层布局。
 - **音效系统**：基于 **Web Audio API** 的原生合成器，不依赖任何外部音频文件。
 - **状态管理**：集中式 `gameState` 对象，驱动响应式 UI 更新。
+- **设备适配**：自动检测触控设备，实现 PC/移动端双端交互适配。
 
 ---
 
-## 二、 核心逻辑与实现 (Core Logic)
+## 二、 核心逻辑与实现
 
-### 1. 人格化学生模型 (Student Personality Model)
+### 1. 人格化学生模型
 每个学生拥有独特的属性数组，这些属性动态决定其 AI 行为：
 - `accuracy` (正确率)：决定答题对错概率。
 - `naughty` (淘气值)：决定课堂搞小动作（纸飞机/纸条）及课间打闹的频率。
 - `attention` (注意力)：显著影响举手概率；过低会进入"打瞌睡"状态。
 - `mood` (心情值)：反馈机制的核心，影响整体表现。
+- `tier` (等级标签)：实时反映学生表现等级（学霸/普通/学渣）。
 
-### 2. 动态数学题库 (Dynamic Math System)
+### 2. 动态数学题库
 支持三年级水平的多维度出题：
 - **四则运算**：加减法（含进退位）、乘除法（含表内与整除）。
 - **知识点**：单位换算（时间/质量/长度）、简单估算。
 - **应用题**：带有 A/B/C 选项的逻辑题，通过字符串匹配判定。
 
-### 3. 多分支判定系统 (Judgment Logic)
+### 3. 多分支判定系统
 游戏不仅判定答案的正误，还判定老师（玩家）的指令对错，共有四种结局：
 - **双重正确**：心情、正确率双升，触发爱心特效。
 - **正向纠错**：指出错误，注意力提升。
 - **误导全班**：学生错但老师判对，触发校长惩罚（扣工资），全班正确率下降。
 - **打击信心**：学生对但老师判错，心情暴跌，全班正确率下降。
 
-### 4. 回答正确概率计算公式 (Answer Correctness Formula)
+### 4. 回答正确概率计算公式
 学生回答正确答案的概率计算公式：
 ```
 正确概率 = 正确率 × 70% - 淘气值 × 20% + 注意力 × 20% + 心情值 × 20%
@@ -44,23 +46,41 @@
 - 计算结果上限为 **90%**
 - 权重分配：正确率(正向70%)、淘气值(负向20%)、注意力(正向20%)、心情值(正向20%)
 
+### 5. 学生等级标签系统
+实时显示学生表现等级，位于学生姓名前方：
+- **学霸**：金色渐变徽章 (`#FFD700` → `#FFA500`)
+- **普通**：蓝色渐变徽章 (`#90CAF9` → `#42A5F5`)
+- **学渣**：红色渐变徽章 (`#EF9A9A` → `#E57373`)
+
+等级判定逻辑：
+```javascript
+if (accuracy >= 70) tier = '学霸';
+else if (accuracy <= 30) tier = '学渣';
+else tier = '普通';
+```
+
 ---
 
-## 三、 玩法机制 (Gameplay Mechanism)
+## 三、 玩法机制
 
-### 1. 课堂时间 (Class Session)
+### 1. 课堂时间
 - **核心流程**：点击黑板出题 -> 粉笔逐字动画 -> 学生概率举手 -> 玩家点名 -> 评判结算。
 - **随机博弈**：玩家需在高频的捣乱事件（纸飞机、传纸条）中通过"拦截"来维持课堂秩序。
 - **惩罚机制**：工资即血条。判定严重错误或未能及时制止乱象将触发"校长突击检查"，导致工资（HP）下降。
 
-### 2. 课间模式 (Break Time)
+### 2. 课间模式
 - **自治系统**：学生从固定座位转变为基于 `requestAnimationFrame` 的物理边界漫游。
 - **随机事件**：包含黑板涂鸦、摔倒大哭、分享零食、吵架推搡等，需要玩家通过"点击交互"或"选择决策"来处理。
 - **恢复机制**：课间休息结束后，学生注意力+15，心情+10。
 
+### 3. 双端交互适配
+- **PC端**：`mouseenter`/`mouseleave` 事件触发学生信息悬浮窗
+- **移动端**：`click` 事件触发，点击空白区域关闭悬浮窗
+- **设备检测**：`'ontouchstart' in window || navigator.maxTouchPoints > 0`
+
 ---
 
-## 四、 动画设计与实现 (Animation Design)
+## 四、 动画设计与实现
 
 ### 1. 物理弹道动画
 使用 **Web Animations API** (`element.animate`) 实现：
@@ -70,15 +90,24 @@
 ### 2. 视觉反馈
 - **粒子特效**：基于 CSS Keyframes 的爱心喷涌、粉红噪声震动。
 - **状态动画**：打瞌睡的 `Zzz` 文字漂移、语音气泡的渐入渐出。
-- **UI 动效**：黑板逐字写入效果（Chalk Writing）、HP 条的动态色彩平滑过渡。
+- **UI 动效**：黑板逐字写入效果、HP 条的动态色彩平滑过渡。
+
+### 3. 层级渲染系统
+为确保动画效果完整展示，采用以下 z-index 分层策略：
+| 层级 | z-index | 元素 |
+|:---:|:---:|:---|
+| 底层 | 1 | 学生图片、课桌 |
+| 中层 | 100 | 学生状态图标（睡觉、举手等） |
+| 高层 | 200 | 对话气泡 |
+| 顶层 | 10000 | 学生信息悬浮窗 |
 
 ---
 
-## 五、 操作逻辑与模块关系 (Logic Map)
+## 五、 操作逻辑与模块关系
 
 ```mermaid
 graph TD
-    User["玩家 (鼠标点击)"] --> BB["黑板模块 (出题/重置)"]
+    User["玩家 (鼠标点击/触控)"] --> BB["黑板模块 (出题/重置)"]
     User --> Std["学生模块 (点名/评价/丢粉笔)"]
     User --> Events["事件拦截 (纸飞机/纸条)"]
     
@@ -86,11 +115,12 @@ graph TD
     Std --> GS
     Events --> GS
     
-    GS --> UI["UI 更新 (黑板文本/HP条/日志库)"]
+    GS --> UI["UI 更新 (黑板文本/HP条/日志库/等级徽章)"]
     GS --> Sound["SoundFX (音效合成)"]
-    GS --> Stats["数值变动 (心情/注意力/工资)"]
+    GS --> Stats["数值变动 (心情/注意力/工资/等级)"]
     
     Stats --> Principal["校长判定 (惩罚触发)"]
+    Stats --> TierBadge["等级徽章更新"]
 ```
 
 ---
@@ -101,12 +131,13 @@ graph TD
 1. **轻量化**：完全自包含，零外部资源依赖（音频、库）。
 2. **逻辑严密**：判定分级与数值连锁反应增加了游戏的策略深度。
 3. **表现力强**：通过原生 API 模拟了丰富的物理与动态交互效果。
+4. **跨端适配**：自动检测设备类型，实现 PC/移动端无缝切换。
 
 **建议方向**：未来可考虑引入"课程表"系统或"期末考试"长线目标，进一步提升重玩价值。
 
 ---
 
-## 七、 开发迭代与需求跟踪 (Development Log)
+## 七、 开发迭代与需求跟踪
 
 本章节记录了开发过程中由用户（开发者）发起的关键指令及 Bug 反馈的执行情况。
 
@@ -130,6 +161,11 @@ graph TD
 | **学生名字叠放图片下方** | ✅ 已完成 | 名字添加渐变背景，叠放在图片底部区域 |
 | **教室环境光影优化** | ✅ 已完成 | 墙壁/地板/黑板添加光影效果，增强空间感 |
 | **响应式布局优化** | ✅ 已完成 | 桌面端大屏/小屏/移动端竖屏/横屏四档适配 |
+| **移除墙壁装饰元素** | ✅ 已完成 | 移除窗户、时钟、国旗、横幅等装饰元素，简化界面 |
+| **HP血条位置调整** | ✅ 已完成 | 移至黑板正下方，与黑板宽度对齐 |
+| **教师区域位置调整** | ✅ 已完成 | 移至HP血条下方，优化垂直布局层次 |
+| **信息窗宽度约束** | ✅ 已完成 | 底部信息栏宽度跟随父容器，实现自适应布局 |
+| **学生等级徽章显示** | ✅ 已完成 | 在学生姓名前实时显示学霸/普通/学渣徽章 |
 
 ### 2. BUG 反馈与修复记录
 | BUG 描述 | 修复状态 | 解决方案总结 |
@@ -146,22 +182,80 @@ graph TD
 | **悬浮窗无法正常消失** | ✅ 已修复 | 移除 `hideTooltip()` 中的 `setTimeout` 延迟 |
 | **校长惩罚后无法继续答题** | ✅ 已修复 | 修正了校长动画 CSS 的 `visibility` 属性和 JS 清理逻辑 |
 | **学生答对老师错判卡住** | ✅ 已修复 | 修正了校长惩罚特效中引用不存在元素的问题 |
+| **学生信息悬浮窗被截断** | ✅ 已修复 | 将 `.student-tooltip` 改为 `position: fixed; z-index: 10000`，突破容器边界限制 |
+| **随机事件动画被截断** | ✅ 已修复 | 将 `.classroom` 和 `.desks-area` 的 `overflow: hidden` 改为 `overflow: visible` |
 
 ### 3. 功能增强记录
 | 功能描述 | 执行状态 | 实现细节 |
 | :--- | :---: | :--- |
 | **课间休息恢复机制** | ✅ 已完成 | 课间结束后学生注意力+15，心情+10，并推送日志通知 |
 | **回答正确概率公式** | ✅ 已完成 | 实现综合概率计算：(正确率×70% - 淘气值×20% + 注意力×20% + 心情×20%)，上限90% |
+| **移动端触控适配** | ✅ 已完成 | 实现设备检测函数 `isTouchDevice()`，移动端使用 click 事件触发悬浮窗 |
+| **全局点击关闭悬浮窗** | ✅ 已完成 | 添加 `initGlobalClickHandler()` 函数，点击空白区域自动关闭悬浮窗 |
+| **学生等级实时更新** | ✅ 已完成 | 实现 `updateAllTierBadges()` 函数，在答题、属性变化时自动更新徽章 |
 
 ---
 
-## 八、 文件结构说明
+## 八、 关键代码实现
+
+### 1. 设备检测与交互适配
+```javascript
+function isTouchDevice() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
+function initStudentTooltipEvents() {
+  const studentEls = document.querySelectorAll('.student');
+  studentEls.forEach(el => {
+    if (isTouchDevice()) {
+      el.addEventListener('click', handleMobileStudentClick);
+    } else {
+      el.addEventListener('mouseenter', handleStudentHover);
+      el.addEventListener('mouseleave', hideTooltipDelayed);
+    }
+  });
+}
+```
+
+### 2. 学生等级徽章更新
+```javascript
+function updateAllTierBadges() {
+  const studentEls = document.querySelectorAll('.student');
+  studentEls.forEach((el, index) => {
+    const studentData = gameState.students[index];
+    if (!studentData) return;
+    const badge = el.querySelector('.student-tier-badge');
+    if (badge) {
+      badge.textContent = studentData.tier;
+      badge.className = 'student-tier-badge ' + 
+        (studentData.tier === '学霸' ? 'tier-top' : 
+         studentData.tier === '学渣' ? 'tier-low' : 'tier-mid');
+    }
+  });
+}
+```
+
+### 3. 悬浮窗定位（突破容器限制）
+```javascript
+function showTooltip(student, rect) {
+  const tooltip = document.getElementById('studentTooltip');
+  tooltip.style.position = 'fixed';
+  tooltip.style.left = `${rect.right + 10}px`;
+  tooltip.style.top = `${rect.top}px`;
+  tooltip.style.zIndex = '10000';
+  tooltip.style.display = 'block';
+}
+```
+
+---
+
+## 九、 文件结构说明
 
 ```
 d:\MyClass\
-├── index.html          # 主页面结构
-├── style.css           # 全局样式与动画
-├── game.js             # 核心游戏逻辑
+├── index.html          # 主页面结构 (359行)
+├── style.css           # 全局样式与动画 (3369行)
+├── game.js             # 核心游戏逻辑 (2695行)
 ├── Master.md           # 项目审计报告（本文件）
 └── assets/
     └── characters/     # 角色图片资源
@@ -175,4 +269,16 @@ d:\MyClass\
 ```
 
 ---
-*报告更新于：2026-03-12*
+
+## 十、 响应式断点设计
+
+| 断点 | 屏幕类型 | 关键调整 |
+|:---|:---|:---|
+| `≥1200px` | PC 大屏 | 完整布局，学生 6 人双排 |
+| `768px-1199px` | 桌面端 | 压缩间距，保持双排 |
+| `480px-767px` | 移动端竖屏 | 单排布局，信息栏折叠 |
+| `<480px` | 移动端横屏 | 极简布局，触控优化 |
+
+---
+
+*报告更新于：2026-03-19*
