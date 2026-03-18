@@ -576,29 +576,27 @@ body {
   flex-direction: column;
   align-items: center;
   position: relative;
-  overflow: hidden;
-  /* 墙壁到地板的渐变 */
+  overflow: visible;
   background:
     linear-gradient(180deg,
       #e8d5b7 0%,
-      #e8d5b7 28%,
-      #d4c0a0 29%,
-      #f5e6d3 32%,
+      #e8d5b7 20%,
+      #d4c0a0 21%,
+      #f5e6d3 24%,
       #f0dcc4 100%);
   border-left: 6px solid #b8a080;
   border-right: 6px solid #b8a080;
   box-shadow: -12px 0 30px rgba(0, 0, 0, 0.12), 12px 0 30px rgba(0, 0, 0, 0.12);
 }
 
-/* --- 墙壁装饰层 --- */
-.wall-decorations {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 28%;
-  z-index: 0;
-  pointer-events: none;
+/* --- 墙壁装饰层（已移除） --- */
+.wall-decorations,
+.window,
+.wall-clock,
+.wall-flag,
+.wall-banner,
+.room-wall {
+  display: none;
 }
 
 /* 窗户 */
@@ -966,7 +964,8 @@ body {
   width: 100%;
   padding: 12px 20px 6px;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
   position: relative;
   z-index: 1;
 }
@@ -982,7 +981,7 @@ body {
   width: 100%;
   background: linear-gradient(180deg, #6b4423 0%, #5c3a1e 50%, #4a2f18 100%);
   padding: 6px;
-  border-radius: 4px;
+  border-radius: 4px 4px 0 0;
   box-shadow:
     0 6px 20px rgba(0, 0, 0, 0.4),
     0 2px 8px rgba(0, 0, 0, 0.3),
@@ -1499,56 +1498,19 @@ body {
   box-shadow: 0 6px 20px rgba(76, 175, 80, 0.5);
 }
 
-.chalk-tray {
-  width: 60%;
-  height: 10px;
-  background: linear-gradient(180deg, var(--color-blackboard-frame), #4a2a10);
-  border-radius: 0 0 3px 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 0 10px;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
-}
-
-.chalk {
-  width: 20px;
-  height: 4px;
-  border-radius: 2px;
-}
-
-.chalk.white {
-  background: #eee;
-}
-
-.chalk.yellow {
-  background: #f0c040;
-}
-
-.chalk.pink {
-  background: #f48fb1;
-}
-
-.chalk.blue {
-  background: #64B5F6;
-}
-
 /* --- 讲台/老师区域 --- */
 .teacher-area {
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 0;
+  padding: 5px 0 0;
   position: relative;
   z-index: 1;
-  margin-bottom: -45px;
 }
 
 .teacher {
   align-items: center;
-  margin-top: -10px;
   animation: teacherIdle 3s ease-in-out infinite;
 }
 
@@ -1566,11 +1528,8 @@ body {
 
 /* --- 老师 HP 条 (耐心值) - 游戏风格血条 --- */
 .hp-bar-container {
-  position: absolute;
-  bottom: -30px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 200px;
+  width: 100%;
+  margin: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1585,8 +1544,8 @@ body {
   width: 100%;
   height: 18px;
   background: linear-gradient(180deg, #1a1a2e 0%, #2d2d44 100%);
-  border: 2px solid #5a5a7a;
-  border-radius: 2px;
+  border: none;
+  border-radius: 0 0 4px 4px;
   overflow: hidden;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.1);
   position: relative;
@@ -1658,15 +1617,23 @@ body {
   filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
 }
 
+.teacher-img.teacher-x {
+  width: 132px;
+  height: 166px;
+}
+
 .student-svg {
   width: 156px;
   height: 192px;
+  max-width: 100%;
 }
 
 /* AI图片容器 */
 .student-img {
   width: 156px;
   height: 192px;
+  max-width: 100%;
+  max-height: 100%;
   position: relative;
   display: flex;
   justify-content: center;
@@ -1695,24 +1662,31 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: flex-start;
-  gap: 0;
-  padding: 0 20px 6px;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 20px 6px;
   position: relative;
   z-index: 1;
-  margin-top: -50px;
+  overflow: visible;
+  min-height: 0;
 }
 
 .desk-row {
   display: flex;
   justify-content: center;
   gap: 0;
+  flex: 1;
+  min-height: 0;
 }
 
 .desk-unit {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  flex: 1;
+  max-width: 200px;
+  min-width: 0;
 }
 
 
@@ -1724,6 +1698,7 @@ body {
   cursor: pointer;
   transition: transform 0.2s ease;
   position: relative;
+  max-width: 100%;
 }
 
 .student:hover {
@@ -1757,17 +1732,47 @@ body {
   }
 }
 
+.student-label-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-top: -35px;
+  z-index: 5;
+  background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.7) 30%, rgba(255,255,255,0.9) 100%);
+  padding: 12px 14px 4px;
+  border-radius: 0 0 12px 12px;
+}
+
+.student-tier-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  white-space: nowrap;
+}
+
+.student-tier-badge.tier-top {
+  background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%);
+  color: #5d4037;
+}
+
+.student-tier-badge.tier-mid {
+  background: linear-gradient(135deg, #90CAF9 0%, #42A5F5 100%);
+  color: #fff;
+}
+
+.student-tier-badge.tier-low {
+  background: linear-gradient(135deg, #EF9A9A 0%, #E57373 100%);
+  color: #fff;
+}
+
 .student-label {
   font-size: 12px;
   color: #5d4037;
   font-weight: 700;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
   position: relative;
-  margin-top: -35px;
-  z-index: 5;
-  background: linear-gradient(180deg, transparent 0%, rgba(255,255,255,0.7) 30%, rgba(255,255,255,0.9) 100%);
-  padding: 12px 14px 4px;
-  border-radius: 0 0 12px 12px;
 }
 
 /* --- 举手 / 睡觉 状态图标 --- */
@@ -1777,7 +1782,7 @@ body {
   left: 50%;
   transform: translateX(-50%);
   font-size: 22px;
-  z-index: 10;
+  z-index: 100;
   pointer-events: none;
 }
 
@@ -1859,7 +1864,7 @@ body {
   font-weight: 700;
   font-family: var(--font-body);
   white-space: nowrap;
-  z-index: 20;
+  z-index: 200;
   opacity: 0;
   transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
   pointer-events: none;
@@ -1937,27 +1942,22 @@ body {
 
 /* --- Tooltip 属性面板 --- */
 .student-tooltip {
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%) translateY(8px);
+  position: fixed;
   width: 200px;
   background: rgba(20, 20, 40, 0.92);
   backdrop-filter: blur(12px);
   border: 1px solid rgba(255, 255, 255, 0.15);
   border-radius: 12px;
   padding: 12px 14px;
-  z-index: 100;
-  pointer-events: none;
+  z-index: 10000;
+  pointer-events: auto;
   opacity: 0;
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition: opacity 0.2s ease;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.05);
 }
 
 .student-tooltip.visible {
   opacity: 1;
-  transform: translateX(-50%) translateY(-6px);
-  pointer-events: none;
 }
 
 /* 底部小三角箭头 */
@@ -2111,14 +2111,13 @@ body {
    底部通知栏 (事件日志)
    ============================================ */
 .bottom-bar {
-  width: var(--classroom-width);
+  width: 100%;
   max-width: 100%;
   background: rgba(26, 26, 46, 0.95);
   padding: 12px 20px;
   border-top: 3px solid #e94560;
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
   height: 100px;
-  /* 固定高度容纳滚动条 */
 }
 
 .event-log-container {
@@ -2278,12 +2277,86 @@ body {
    响应式适配
    ============================================ */
 
-/* 桌面端大屏幕优化 */
-@media (min-height: 900px) {
+/* 游戏容器响应式缩放 */
+.game-screen {
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.classroom {
+  width: 100%;
+  max-width: 750px;
+  height: 100%;
+  max-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg,
+      #e8d5b7 0%,
+      #e8d5b7 20%,
+      #d4c0a0 21%,
+      #f5e6d3 24%,
+      #f0dcc4 100%);
+  border-left: 6px solid #b8a080;
+  border-right: 6px solid #b8a080;
+  box-shadow: -12px 0 30px rgba(0, 0, 0, 0.12), 12px 0 30px rgba(0, 0, 0, 0.12);
+}
+
+/* PC端大屏幕 (≥1920×1080) */
+@media (min-width: 1920px) and (min-height: 1080px) {
   .classroom {
-    max-width: 700px;
+    max-width: 900px;
+    max-height: 90vh;
   }
 
+  .blackboard-surface {
+    min-height: 160px;
+    padding: 24px;
+  }
+
+  .chalk-text {
+    font-size: 26px;
+  }
+
+  .student-svg,
+  .student-img {
+    width: 180px;
+    height: 222px;
+  }
+
+  .teacher-svg,
+  .teacher-img {
+    width: 210px;
+    height: 263px;
+  }
+  
+  .teacher-img.teacher-x {
+    width: 147px;
+    height: 184px;
+  }
+
+  .hp-track {
+    height: 22px;
+  }
+
+  .hp-value {
+    font-size: 16px;
+  }
+
+  .desk-row {
+    gap: 20px;
+  }
+}
+
+/* 桌面端大屏幕优化 */
+@media (min-height: 900px) {
   .blackboard-surface {
     min-height: 150px;
     padding: 20px;
@@ -2301,20 +2374,21 @@ body {
 
   .teacher-svg,
   .teacher-img {
-    width: 240px;
-    height: 300px;
+    width: 189px;
+    height: 237px;
+  }
+  
+  .teacher-img.teacher-x {
+    width: 132px;
+    height: 166px;
   }
 
   .desk-row {
-    gap: 65px;
+    gap: 15px;
   }
 
   .bottom-bar {
     height: 110px;
-  }
-
-  .hp-bar-container {
-    width: 220px;
   }
 
   .hp-track {
@@ -2338,9 +2412,8 @@ body {
   }
 
   .desks-area {
-    gap: 1px;
-    padding: 2px 15px 6px;
-    margin-top: -25px;
+    gap: 5px;
+    padding: 5px 15px 6px;
   }
 
   .student-svg,
@@ -2355,13 +2428,14 @@ body {
     height: 175px;
   }
   
+  .teacher-img.teacher-x {
+    width: 98px;
+    height: 123px;
+  }
+  
   .bottom-bar {
     height: 75px;
     padding: 8px 15px;
-  }
-
-  .hp-bar-container {
-    width: 160px;
   }
 
   .hp-track {
@@ -2379,9 +2453,22 @@ body {
     --classroom-width: 100%;
     max-height: 95vh;
   }
+  
+  .blackboard {
+    width: 90%;
+  }
+  
+  .bottom-bar {
+    width: 100%;
+    max-width: 100%;
+  }
 
   .desk-row {
-    gap: 25px;
+    gap: 10px;
+  }
+  
+  .desk-unit {
+    max-width: 120px;
   }
 
   .student-svg,
@@ -2394,6 +2481,11 @@ body {
   .teacher-img {
     width: 120px;
     height: 150px;
+  }
+  
+  .teacher-img.teacher-x {
+    width: 84px;
+    height: 105px;
   }
 
   .blackboard-surface {
@@ -2412,10 +2504,6 @@ body {
   .bottom-bar {
     height: 70px;
     padding: 6px 12px;
-  }
-
-  .hp-bar-container {
-    width: 140px;
   }
 
   .hp-track {
@@ -2437,6 +2525,16 @@ body {
   .blackboard-area {
     width: 50%;
     padding: 8px;
+  }
+  
+  .blackboard {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .bottom-bar {
+    width: 100%;
+    max-width: 100%;
   }
 
   .teacher-area {
@@ -2469,7 +2567,6 @@ body {
   }
 
   .bottom-bar {
-    width: 100%;
     height: 60px;
   }
 }

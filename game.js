@@ -745,6 +745,21 @@ function updateStudentTiers() {
     else if (index === scoredStudents.length - 1) item.student.tier = '学渣';
     else item.student.tier = '普通';
   });
+  updateAllTierBadges();
+}
+
+function updateAllTierBadges() {
+  const studentEls = document.querySelectorAll('.student');
+  studentEls.forEach((el, index) => {
+    const studentData = gameState.students[index];
+    if (!studentData) return;
+    const badge = el.querySelector('.student-tier-badge');
+    if (badge) {
+      badge.textContent = studentData.tier;
+      badge.className = 'student-tier-badge ' + 
+        (studentData.tier === '学霸' ? 'tier-top' : studentData.tier === '学渣' ? 'tier-low' : 'tier-mid');
+    }
+  });
 }
 
 // ============================================
@@ -1871,8 +1886,16 @@ function getAllSaves() {
 function createSaveCard(save) {
   const card = document.createElement('div');
   card.className = 'save-card';
+  
+  let genderIcon = '👨';
+  if (save.gender === '女') {
+    genderIcon = '👩';
+  } else if (save.gender === '青鸾') {
+    genderIcon = '🦚';
+  }
+  
   card.innerHTML = `
-    <div class="save-avatar">${save.gender === '女' ? '👩' : '👨'}</div>
+    <div class="save-avatar">${genderIcon}</div>
     <div class="save-info">
       <div class="save-name">${save.name}</div>
       <div class="save-salary">工资: ￥${save.salary}</div>
@@ -2001,8 +2024,14 @@ function enterGame() {
   // 根据性别加载老师图片
   const teacherImg = document.getElementById('teacherImg');
   if (teacherImg) {
+    // 移除之前可能添加的特殊类
+    teacherImg.classList.remove('teacher-x');
+    
     if (gameState.teacherGender === '女') {
       teacherImg.src = 'assets/characters/teacher_F_standing.png';
+    } else if (gameState.teacherGender === '青鸾') {
+      teacherImg.src = 'assets/characters/teacher_X_standing.png';
+      teacherImg.classList.add('teacher-x');
     } else {
       teacherImg.src = 'assets/characters/teacher_standing.png';
     }
@@ -2014,6 +2043,7 @@ function enterGame() {
 
   applyStudentNames();
   resetStudentAnimations();
+  updateAllTierBadges();
 
   initBlackboardClick();
   startClassroomEventTimer();
@@ -2119,6 +2149,10 @@ function initBlackboardClick() {
 //  Tooltip 管理
 // ============================================
 
+function isTouchDevice() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
 function getStatLevel(value) {
   if (value >= 80) return { color: '#4CAF50', level: '优秀' };
   if (value >= 60) return { color: '#FF9800', level: '良好' };
@@ -2172,7 +2206,27 @@ function showTooltip(studentEl, studentData) {
     </div>
   `;
 
-  studentEl.appendChild(tooltip);
+  document.body.appendChild(tooltip);
+
+  const rect = studentEl.getBoundingClientRect();
+  const tooltipWidth = 200;
+  const tooltipHeight = tooltip.offsetHeight || 180;
+  const margin = 10;
+
+  let left = rect.left + rect.width / 2 - tooltipWidth / 2;
+  let top = rect.top - tooltipHeight - margin;
+
+  if (left < 10) left = 10;
+  if (left + tooltipWidth > window.innerWidth - 10) {
+    left = window.innerWidth - tooltipWidth - 10;
+  }
+  if (top < 10) {
+    top = rect.bottom + margin;
+  }
+
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+
   gameState.activeTooltipStudentId = studentData.id;
   requestAnimationFrame(() => tooltip.classList.add('visible'));
 }
@@ -2192,6 +2246,7 @@ function hideTooltip() {
 
 function initStudentInteraction() {
   const studentEls = document.querySelectorAll('.student');
+  const isMobile = isTouchDevice();
 
   studentEls.forEach((student, index) => {
     const imgContainer = student.querySelector('.student-img');
@@ -2199,59 +2254,102 @@ function initStudentInteraction() {
       student.dataset.currentState = 0;
     }
 
-    // 鼠标悬停显示 Tooltip
-    student.addEventListener('mouseenter', () => {
-      const sd = gameState.students[index];
-      if (sd) showTooltip(student, sd);
-    });
+    if (isMobile) {
+      student.addEventListener('click', handleMobileStudentClick);
+    } else {
+      student.addEventListener('mouseenter', () => {
+        const sd = gameState.students[index];
+        if (sd) showTooltip(student, sd);
+      });
 
-    student.addEventListener('mouseleave', () => {
-      hideTooltip();
-    });
+      student.addEventListener('mouseleave', () => {
+        hideTooltip();
+      });
 
-    // 点击 = 丢粉笔或老师点名
-    student.addEventListener('click', () => {
-      // 正在评判面板时不接受交互
-      if (gameState.questionPhase === 'evaluating') return;
-
-      const studentData = gameState.students[index];
-      if (!studentData) return;
-
-      // 如果学生在睡觉，丢粉笔叫醒
-      if (studentData.isSleeping) {
-        throwChalkAt(student, studentData);
-        return;
-      }
-
-      // 否则，如果是回答阶段则走点名逻辑
-      if (gameState.questionPhase === 'answering') {
-        handleStudentAnswer(student, studentData);
-        return;
-      }
-
-      // 如果没有在出题/回答互动阶段，点击就是随意换姿态玩
-      if (imgContainer && gameState.questionPhase === 'idle') {
-        const states = ['sitting', 'raising', 'standing'];
-        let currentStateIdx = parseInt(student.dataset.currentState, 10);
-        currentStateIdx = (currentStateIdx + 1) % states.length;
-        setStudentPose(student, states[currentStateIdx]);
-
-        const name = studentData.name;
-        const gender = studentData.gender;
-        let actionText = '正在回答问题...';
-        const nextState = states[currentStateIdx];
-        if (nextState === 'sitting') actionText = '坐下了。';
-        else if (nextState === 'raising') actionText = '举手要回答问题！';
-        else if (nextState === 'standing') actionText = '站起来回答问题。';
-        updateChalkboard(`${name}（${gender}生）${actionText}`);
-
-        student.classList.remove('clicked');
-        void student.offsetHeight;
-        student.classList.add('clicked');
-        setTimeout(() => student.classList.remove('clicked'), 400);
-      }
-    });
+      student.addEventListener('click', handleDesktopStudentClick);
+    }
   });
+
+  if (isMobile) {
+    document.addEventListener('click', handleMobileOutsideClick);
+  }
+}
+
+function handleMobileStudentClick(e) {
+  e.stopPropagation();
+  const student = e.currentTarget;
+  const index = parseInt(Array.from(document.querySelectorAll('.student')).indexOf(student), 10);
+  const studentData = gameState.students[index];
+  if (!studentData) return;
+
+  if (gameState.questionPhase === 'evaluating') return;
+
+  if (gameState.activeTooltipStudentId === studentData.id) {
+    hideTooltip();
+    return;
+  }
+
+  hideTooltip();
+
+  if (studentData.isSleeping) {
+    throwChalkAt(student, studentData);
+    return;
+  }
+
+  if (gameState.questionPhase === 'answering') {
+    handleStudentAnswer(student, studentData);
+    return;
+  }
+
+  showTooltip(student, studentData);
+}
+
+function handleMobileOutsideClick(e) {
+  if (!e.target.closest('.student') && !e.target.closest('.student-tooltip')) {
+    hideTooltip();
+  }
+}
+
+function handleDesktopStudentClick(e) {
+  const student = e.currentTarget;
+  const index = parseInt(Array.from(document.querySelectorAll('.student')).indexOf(student), 10);
+  const imgContainer = student.querySelector('.student-img');
+
+  if (gameState.questionPhase === 'evaluating') return;
+
+  const studentData = gameState.students[index];
+  if (!studentData) return;
+
+  if (studentData.isSleeping) {
+    throwChalkAt(student, studentData);
+    return;
+  }
+
+  if (gameState.questionPhase === 'answering') {
+    handleStudentAnswer(student, studentData);
+    return;
+  }
+
+  if (imgContainer && gameState.questionPhase === 'idle') {
+    const states = ['sitting', 'raising', 'standing'];
+    let currentStateIdx = parseInt(student.dataset.currentState, 10);
+    currentStateIdx = (currentStateIdx + 1) % states.length;
+    setStudentPose(student, states[currentStateIdx]);
+
+    const name = studentData.name;
+    const gender = studentData.gender;
+    let actionText = '正在回答问题...';
+    const nextState = states[currentStateIdx];
+    if (nextState === 'sitting') actionText = '坐下了。';
+    else if (nextState === 'raising') actionText = '举手要回答问题！';
+    else if (nextState === 'standing') actionText = '站起来回答问题。';
+    updateChalkboard(`${name}（${gender}生）${actionText}`);
+
+    student.classList.remove('clicked');
+    void student.offsetHeight;
+    student.classList.add('clicked');
+    setTimeout(() => student.classList.remove('clicked'), 400);
+  }
 }
 
 // ============================================
@@ -2579,4 +2677,19 @@ document.addEventListener('DOMContentLoaded', () => {
   initStudentInteraction();
   initEarlyDismissBtn();
   initShopAndInventory();
+  initGlobalClickHandler();
 });
+
+function initGlobalClickHandler() {
+  document.addEventListener('click', (e) => {
+    const tooltip = document.getElementById('studentTooltip');
+    if (!tooltip) return;
+
+    const isClickOnStudent = e.target.closest('.student');
+    const isClickOnTooltip = e.target.closest('.student-tooltip');
+
+    if (!isClickOnStudent && !isClickOnTooltip) {
+      hideTooltip();
+    }
+  });
+}

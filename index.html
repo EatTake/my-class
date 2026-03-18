@@ -42,6 +42,11 @@
             <span class="gender-icon">👩</span>
             <span class="gender-text">女老师</span>
           </label>
+          <label class="gender-option">
+            <input type="radio" name="teacherGender" value="青鸾">
+            <span class="gender-icon">🦚</span>
+            <span class="gender-text">青鸾</span>
+          </label>
         </div>
 
         <!-- 新建游戏按钮 -->
@@ -77,70 +82,6 @@
       <!-- 室内 3D 结构 -->
       <div class="floor-tiles"></div>
 
-      <div class="room-wall wall-left">
-        <div class="room-door door-back">
-          <div class="door-window"></div>
-          <div class="door-handle"></div>
-        </div>
-      </div>
-
-      <div class="room-wall wall-right">
-        <div class="room-door door-front">
-          <div class="door-window"></div>
-          <div class="door-handle"></div>
-        </div>
-      </div>
-
-      <!-- 墙壁正前方装饰层 -->
-      <div class="wall-decorations">
-        <!-- 左窗户 -->
-        <div class="window window-left">
-          <div class="window-frame">
-            <div class="window-glass">
-              <div class="window-sky"></div>
-              <div class="window-cloud cloud-1"></div>
-              <div class="window-cloud cloud-2"></div>
-              <div class="window-tree"></div>
-            </div>
-            <div class="window-divider-h"></div>
-            <div class="window-divider-v"></div>
-          </div>
-          <div class="window-curtain curtain-left"></div>
-          <div class="window-curtain curtain-right"></div>
-        </div>
-        <!-- 右窗户 -->
-        <div class="window window-right">
-          <div class="window-frame">
-            <div class="window-glass">
-              <div class="window-sky"></div>
-              <div class="window-cloud cloud-1" style="animation-delay: 1s"></div>
-              <div class="window-cloud cloud-2" style="animation-delay: 2.5s"></div>
-              <div class="window-tree" style="left: 60%"></div>
-            </div>
-            <div class="window-divider-h"></div>
-            <div class="window-divider-v"></div>
-          </div>
-          <div class="window-curtain curtain-left"></div>
-          <div class="window-curtain curtain-right"></div>
-        </div>
-        <!-- 时钟 -->
-        <div class="wall-clock">
-          <div class="clock-face">
-            <div class="clock-dot"></div>
-            <div class="clock-hand clock-hour"></div>
-            <div class="clock-hand clock-minute"></div>
-            <span class="clock-mark" style="--rot:0deg"></span>
-            <span class="clock-mark" style="--rot:90deg"></span>
-            <span class="clock-mark" style="--rot:180deg"></span>
-            <span class="clock-mark" style="--rot:270deg"></span>
-          </div>
-        </div>
-        <!-- 国旗 -->
-        <div class="wall-flag">🇨🇳</div>
-        <!-- 奖状/标语 -->
-        <div class="wall-banner banner-left">⭐ 优秀班级 ⭐</div>
-        <div class="wall-banner banner-right">📖 好好学习 📖</div>
-      </div>
 
       <!-- 黑板区域 -->
       <div class="blackboard-area">
@@ -162,39 +103,33 @@
               </button>
             </div>
           </div>
-          <!-- 粉笔槽 -->
-          <div class="chalk-tray">
-            <span class="chalk white"></span>
-            <span class="chalk yellow"></span>
-            <span class="chalk pink"></span>
-            <span class="chalk blue"></span>
-          </div>
-        </div>
-        <!-- 血条显示在粉笔槽下方 -->
-        <div class="hp-bar-container">
-          <div class="hp-track">
-            <div class="hp-fill" id="teacherHpFill" style="width: 100%;"></div>
-            <div class="hp-segments">
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
-              <div class="hp-segment"></div><div class="hp-segment"></div>
+          <!-- 血条显示在原粉笔槽位置 -->
+          <div class="hp-bar-container">
+            <div class="hp-track">
+              <div class="hp-fill" id="teacherHpFill" style="width: 100%;"></div>
+              <div class="hp-segments">
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div><div class="hp-segment"></div>
+              </div>
+              <div class="hp-value" id="teacherHpValue">10000</div>
             </div>
-            <div class="hp-value" id="teacherHpValue">10000</div>
           </div>
         </div>
-      </div>
-
-      <!-- 教师区域 -->
-      <div class="teacher-area">
-        <div class="teacher" id="teacher">
-          <img id="teacherImg" class="character-img teacher-img" src="assets/characters/teacher_standing.png" alt="老师">
+        
+        <!-- 教师区域 -->
+        <div class="teacher-area">
+          <div class="teacher" id="teacher">
+            <img id="teacherImg" class="character-img teacher-img" src="assets/characters/teacher_standing.png" alt="老师">
+          </div>
         </div>
       </div>
 
@@ -209,7 +144,10 @@
                 <img class="state-raising" src="assets/characters/xm_raising.png" alt="小明 举手">
                 <img class="state-standing" src="assets/characters/xm_standing.png" alt="小明 站立">
               </div>
-              <span class="student-label">小明</span>
+              <div class="student-label-wrapper">
+                <span class="student-tier-badge"></span>
+                <span class="student-label">小明</span>
+              </div>
             </div>
           </div>
           <div class="desk-unit">
@@ -219,7 +157,10 @@
                 <img class="state-raising" src="assets/characters/xh_raising.png" alt="小红 举手">
                 <img class="state-standing" src="assets/characters/xh_standing.png" alt="小红 站立">
               </div>
-              <span class="student-label">小红</span>
+              <div class="student-label-wrapper">
+                <span class="student-tier-badge"></span>
+                <span class="student-label">小红</span>
+              </div>
             </div>
           </div>
           <div class="desk-unit">
@@ -229,7 +170,10 @@
                 <img class="state-raising" src="assets/characters/xl_raising.png" alt="小丽 举手">
                 <img class="state-standing" src="assets/characters/xl_standing.png" alt="小丽 站立">
               </div>
-              <span class="student-label">小丽</span>
+              <div class="student-label-wrapper">
+                <span class="student-tier-badge"></span>
+                <span class="student-label">小丽</span>
+              </div>
             </div>
           </div>
         </div>
@@ -243,7 +187,10 @@
                 <img class="state-raising" src="assets/characters/xg_raising.png" alt="小刚 举手">
                 <img class="state-standing" src="assets/characters/xg_standing.png" alt="小刚 站立">
               </div>
-              <span class="student-label">小刚</span>
+              <div class="student-label-wrapper">
+                <span class="student-tier-badge"></span>
+                <span class="student-label">小刚</span>
+              </div>
             </div>
           </div>
           <div class="desk-unit">
@@ -253,7 +200,10 @@
                 <img class="state-raising" src="assets/characters/xq_raising.png" alt="小强 举手">
                 <img class="state-standing" src="assets/characters/xq_standing.png" alt="小强 站立">
               </div>
-              <span class="student-label">小强</span>
+              <div class="student-label-wrapper">
+                <span class="student-tier-badge"></span>
+                <span class="student-label">小强</span>
+              </div>
             </div>
           </div>
           <div class="desk-unit">
@@ -263,7 +213,10 @@
                 <img class="state-raising" src="assets/characters/xf_raising.png" alt="小芳 举手">
                 <img class="state-standing" src="assets/characters/xf_standing.png" alt="小芳 站立">
               </div>
-              <span class="student-label">小芳</span>
+              <div class="student-label-wrapper">
+                <span class="student-tier-badge"></span>
+                <span class="student-label">小芳</span>
+              </div>
             </div>
           </div>
         </div>
@@ -306,12 +259,12 @@
       <div id="flashRedOverlay" class="flash-red-overlay"></div>
       <!-- 校长突击 -->
       <img id="principalHead" class="principal-head img-principal" src="principal.png" alt="Angry Principal">
-    </div>
-
-    <!-- 底部 UI 条：事件通知滚屏 -->
-    <div class="bottom-bar event-log-bar">
-      <div class="event-log-container" id="eventLogContainer">
-        <!-- 动态塞入事件消息 -->
+      
+      <!-- 底部 UI 条：事件通知滚屏 -->
+      <div class="bottom-bar event-log-bar">
+        <div class="event-log-container" id="eventLogContainer">
+          <!-- 动态塞入事件消息 -->
+        </div>
       </div>
     </div>
   </div>
