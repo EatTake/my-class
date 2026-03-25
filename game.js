@@ -3615,38 +3615,13 @@ function showStudentScoreRanking() {
 }
 
 // ============================================
-// 排行榜系统 - CloudBase 云开发
+// 排行榜系统 - Supabase
 // ============================================
 
-/**
- * 腾讯云 CloudBase 初始化
- * 设计理由：使用匿名登录，无需用户注册即可上传成绩
- */
-let cloudApp = null;
-let cloudDb = null;
-let cloudAuthReady = false;
+const supabaseUrl = 'https://ogkderjuhbcewpuigsql.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9na2Rlcmp1aGJjZXdwdWlnc3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTIzMTQsImV4cCI6MjA5MDAyODMxNH0.cruYgVyH9ClTjTEDCUWm2K6YZBnM7CFbmahuAZkELS0';
 
-async function initCloudBase() {
-  try {
-    cloudApp = cloudbase.init({
-      env: 'weipai-9gu4rudvc76f92f9'
-    });
-    const auth = cloudApp.auth({ persistence: 'local' });
-    // 检查是否已登录
-    const loginState = await auth.getLoginState();
-    if (!loginState) {
-      await auth.anonymousAuthProvider().signIn();
-    }
-    cloudDb = cloudApp.database();
-    cloudAuthReady = true;
-  } catch (err) {
-    console.error('CloudBase 初始化失败:', err);
-    cloudAuthReady = false;
-  }
-}
-
-// 页面加载时就初始化 CloudBase
-initCloudBase();
+let supabase = null;
 
 // --- 排行榜维度定义 ---
 const LEADERBOARD_TABS = [
@@ -3659,16 +3634,12 @@ const LEADERBOARD_TABS = [
 ];
 
 /**
- * 上传成绩到云端
- * 计算 6 个维度的最高分，打包写入 leaderboard 集合
+ * 上传成绩到 Supabase
  */
 async function uploadScoreToCloud(btnEl) {
-  if (!cloudAuthReady || !cloudDb) {
-    await initCloudBase();
-    if (!cloudAuthReady) {
-      pushEventLog('❌ 云端连接失败，请检查网络后重试', 'negative');
-      return;
-    }
+  if (!supabase) {
+    pushEventLog('❌ 数据库连接未就绪，请检查网络或刷新页面', 'negative');
+    return;
   }
 
   btnEl.disabled = true;
@@ -3712,7 +3683,7 @@ async function uploadScoreToCloud(btnEl) {
 
     const teacherName = gameState.teacherName;
 
-    // 打包成6条记录写入云端
+    // Supabase 支持直接批量插入数组
     const records = [
       { board: 'classAvg', teacher: teacherName, student: '全班', score: avgScore },
       { board: 'topStudent', teacher: teacherName, student: topStudentName, score: topStudentScore },
@@ -3722,24 +3693,17 @@ async function uploadScoreToCloud(btnEl) {
       { board: 'mood', teacher: teacherName, student: maxMood.name, score: maxMood.value }
     ];
 
-    const collection = cloudDb.collection('leaderboard');
+    const { error } = await supabase
+      .from('leaderboard')
+      .insert(records);
 
-    for (const record of records) {
-      const res = await collection.add({
-        ...record,
-        timestamp: Date.now()
-      });
-      console.log('上传单条返回:', res);
-      if (res.code) {
-        throw new Error(`[${res.code}] ${res.message}`);
-      }
-    }
+    if (error) throw error;
 
     btnEl.textContent = '✅ 已上传';
     btnEl.disabled = true;
     pushEventLog('🏆 成绩已上传全服排行榜！', 'positive');
   } catch (err) {
-    console.error('上传失败:', err);
+    console.error('Supabase 上传失败:', err);
     btnEl.textContent = '❌ 上传失败，点击重试';
     btnEl.disabled = false;
     pushEventLog('❌ 成绩上传失败，请重试', 'negative');
@@ -3756,7 +3720,6 @@ function initLeaderboardBtn() {
 
 /**
  * 展示全服排行榜面板
- * 6个 Tab 对应 6 个维度，点击切换拉取云端数据
  */
 function showLeaderboardPanel() {
   const existing = document.getElementById('leaderboardPanel');
@@ -3811,8 +3774,7 @@ function showLeaderboardPanel() {
 }
 
 /**
- * 从云端拉取排行榜数据并渲染 Top 10
- * @param {string} boardKey - 榜单类型 key
+ * 从 Supabase 拉取排行榜数据并渲染 Top 10
  */
 async function fetchLeaderboard(boardKey) {
   const container = document.getElementById('lbListContainer');
@@ -3820,24 +3782,22 @@ async function fetchLeaderboard(boardKey) {
 
   container.innerHTML = '<div class="leaderboard-loading">⏳ 加载中...</div>';
 
-  if (!cloudAuthReady || !cloudDb) {
-    await initCloudBase();
-    if (!cloudAuthReady) {
-      container.innerHTML = '<div class="leaderboard-empty">❌ 云端连接失败，请检查网络</div>';
-      return;
-    }
+  if (!supabase) {
+    container.innerHTML = '<div class="leaderboard-empty">❌ 数据库连接未就绪</div>';
+    return;
   }
 
   try {
-    const res = await cloudDb.collection('leaderboard')
-      .where({ board: boardKey })
-      .orderBy('score', 'desc')
-      .limit(10)
-      .get();
+    const { data, error } = await supabase
+      .from('leaderboard')
+      .select('*')
+      .eq('board', boardKey)
+      .order('score', { ascending: false })
+      .limit(10);
 
-    const data = res.data || [];
+    if (error) throw error;
 
-    if (data.length === 0) {
+    if (!data || data.length === 0) {
       container.innerHTML = '<div class="leaderboard-empty">暂无数据，快去考试上传成绩吧！</div>';
       return;
     }
@@ -3870,5 +3830,8 @@ async function fetchLeaderboard(boardKey) {
 
 // 在 DOMContentLoaded 中追加初始化
 document.addEventListener('DOMContentLoaded', () => {
+  if (window.supabase) {
+    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+  }
   initLeaderboardBtn();
 });
