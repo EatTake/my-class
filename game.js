@@ -3706,9 +3706,11 @@ async function uploadScoreToCloud(btnEl) {
       { board: 'mood', teacher: teacherName, student: maxMood.name, score: maxMood.value }
     ];
 
+    // 配合在 Supabase 建立的唯一约束（board, teacher, student, score）进行优雅截断排重
+    // 即使出现重复数据也不会报错，而是默默吸收抛弃，从而保护数据库不被刷爆
     const { error } = await supabaseClient
       .from('leaderboard')
-      .insert(records);
+      .upsert(records, { onConflict: 'board,teacher,student,score', ignoreDuplicates: true });
 
     if (error) throw error;
 
