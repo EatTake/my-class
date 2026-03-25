@@ -107,14 +107,6 @@
           <span class="btn-icon">📊</span>
           <span class="btn-text">考试成绩</span>
         </button>
-        <!-- 考试倒计时条 -->
-        <div id="examTimerBar" class="exam-timer-bar hidden">
-          <div class="exam-timer-label">期末考试</div>
-          <div class="exam-timer-track">
-            <div class="exam-timer-fill" id="examTimerFill"></div>
-            <div class="exam-timer-text" id="examTimerText">30</div>
-          </div>
-        </div>
         <div class="blackboard">
           <div class="blackboard-frame">
             <div class="blackboard-surface">
@@ -141,8 +133,16 @@
               </div>
             </div>
           </div>
-          <!-- 血条显示在原粉笔槽位置 -->
+          <!-- 辅组进度体系条（考试倒计时/血条）整合区 -->
           <div class="hp-bar-container">
+            <!-- 考试倒计时条并入血条模块上方 -->
+            <div id="examTimerBar" class="exam-timer-bar hidden">
+              <div class="exam-timer-track">
+                <div class="exam-timer-fill" id="examTimerFill"></div>
+                <div class="exam-timer-text">距离收卷: <span id="examTimerText">30</span> 秒</div>
+              </div>
+            </div>
+            <!-- 原体力血条 -->
             <div class="hp-track">
               <div class="hp-fill" id="teacherHpFill" style="width: 100%;"></div>
               <div class="hp-segments">
