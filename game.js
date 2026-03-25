@@ -3806,7 +3806,7 @@ async function fetchLeaderboard(boardKey) {
       .select('*')
       .eq('board', boardKey)
       .order('score', { ascending: false })
-      .limit(10);
+      .limit(100);
 
     if (error) throw error;
 
@@ -3815,9 +3815,27 @@ async function fetchLeaderboard(boardKey) {
       return;
     }
 
+    // 前端去重逻辑：相同老师+相同学生+相同分数 视为同一条（重复打卡）记录
+    const uniqueKeys = new Set();
+    const deduplicatedData = [];
+
+    for (const item of data) {
+      const key = `${item.teacher}_${item.student}_${item.score}`;
+      if (!uniqueKeys.has(key)) {
+        uniqueKeys.add(key);
+        deduplicatedData.push(item);
+        if (deduplicatedData.length >= 10) break; // 仅取去重后的前10名
+      }
+    }
+
+    if (deduplicatedData.length === 0) {
+      container.innerHTML = '<div class="leaderboard-empty">暂无有效数据！</div>';
+      return;
+    }
+
     const unit = boardKey === 'classAvg' ? '分' : '';
 
-    container.innerHTML = data.map((item, index) => {
+    container.innerHTML = deduplicatedData.map((item, index) => {
       const rankClass = index < 3 ? `rank-${index + 1}` : '';
       const medals = ['🥇', '🥈', '🥉'];
       const rankDisplay = index < 3 ? medals[index] : `${index + 1}`;
