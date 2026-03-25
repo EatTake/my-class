@@ -3339,9 +3339,10 @@ function calculateFinalScores() {
   };
 
   gameState.examHistory.push(examRecord);
-  // 只保留最近3次考试记录
+  // 按平均分降序排序，仅保留最高的前3次分数
+  gameState.examHistory.sort((a, b) => b.avgScore - a.avgScore);
   if (gameState.examHistory.length > 3) {
-    gameState.examHistory.shift();
+    gameState.examHistory.pop();
   }
 
   updateStudentTiers();
@@ -3466,6 +3467,9 @@ function showExamMenu() {
           <span>👥</span>
           <span>查看学生成绩</span>
         </button>
+        <button class="upload-score-btn" id="uploadScoreMenuBtn" style="margin-top: 15px; width: 100%;">
+          <span>🚀 上传成绩打榜！</span>
+        </button>
         <button class="exam-menu-btn close-btn" id="examMenuCloseBtn">
           <span>关闭</span>
         </button>
@@ -3483,6 +3487,11 @@ function showExamMenu() {
   document.getElementById('studentScoreBtn').addEventListener('click', () => {
     menu.remove();
     showStudentScoreRanking();
+  });
+
+  document.getElementById('uploadScoreMenuBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    uploadScoreToCloud(e.target);
   });
 
   document.getElementById('examMenuCloseBtn').addEventListener('click', () => {
@@ -3508,21 +3517,25 @@ function showClassScoreHistory() {
   if (gameState.examHistory.length === 0) {
     historyHtml = '<p style="text-align: center; color: #666;">暂无考试记录</p>';
   } else {
-    historyHtml = gameState.examHistory.map((record, index) => `
-      <div class="ranking-item rank-other" style="margin: 10px 0;">
+    historyHtml = gameState.examHistory.map((record, index) => {
+      const rankClass = index === 0 ? 'rank-1' : index === 1 ? 'rank-2' : index === 2 ? 'rank-3' : 'rank-other';
+      const badge = ['🥇', '🥈', '🥉'][index] || `第${index + 1}名`;
+      return `
+      <div class="ranking-item ${rankClass}" style="margin: 10px 0;">
         <div class="ranking-name">
-          <span class="ranking-badge">第${gameState.examHistory.length - index}次</span>
+          <span class="ranking-badge">${badge}</span>
           <span>${record.date}</span>
         </div>
         <span class="ranking-score">平均分: ${record.avgScore}分</span>
       </div>
-    `).reverse().join('');
+      `;
+    }).join('');
   }
 
   panel.innerHTML = `
     <div class="exam-menu-content">
       <h2 class="exam-menu-title">🏫 班级成绩历史</h2>
-      <p style="text-align: center; color: #888; margin-bottom: 15px;">近三次考试平均分</p>
+      <p style="text-align: center; color: #888; margin-bottom: 15px;">历史最高前三名成绩</p>
       <div class="score-ranking-list">
         ${historyHtml}
       </div>
@@ -3558,8 +3571,9 @@ function showStudentScoreRanking() {
   if (gameState.examHistory.length === 0) {
     rankingHtml = '<p style="text-align: center; color: #666;">暂无考试记录</p>';
   } else {
-    const lastExam = gameState.examHistory[gameState.examHistory.length - 1];
-    const sortedStudents = [...lastExam.studentScores].sort((a, b) => b.score - a.score);
+    // 因为历史记录按降序排列，第0个即为历史最高分大考
+    const bestExam = gameState.examHistory[0];
+    const sortedStudents = [...bestExam.studentScores].sort((a, b) => b.score - a.score);
 
     rankingHtml = sortedStudents.map((student, index) => {
       let rankClass = 'rank-other';
@@ -3591,7 +3605,7 @@ function showStudentScoreRanking() {
   panel.innerHTML = `
     <div class="exam-menu-content">
       <h2 class="exam-menu-title">👥 学生成绩排名</h2>
-      <p style="text-align: center; color: #888; margin-bottom: 15px;">最后一次考试成绩</p>
+      <p style="text-align: center; color: #888; margin-bottom: 15px;">历史最高分大考成绩</p>
       <div class="score-ranking-list">
         ${rankingHtml}
       </div>
@@ -3647,14 +3661,13 @@ async function uploadScoreToCloud(btnEl) {
 
   try {
     const students = gameState.students;
-    const examResults = examState.examResults;
 
-    // 1. 班级榜：本次考试平均分
-    const avgScore = Math.round(
-      examResults.students.reduce((sum, s) => sum + s.finalScore, 0) / examResults.students.length
-    );
+    // 1. 班级榜：班级历史成绩中的最高平均分
+    const avgScore = gameState.examHistory.length > 0
+      ? Math.max(...gameState.examHistory.map(h => h.avgScore))
+      : 0;
 
-    // 2. 学霸榜：综合公式最高分
+    // 2. 学霸榜：综合公式最高分 (使用此时最新的状态数据)
     let topStudentScore = -Infinity;
     let topStudentName = '';
     students.forEach(s => {
