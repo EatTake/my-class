@@ -416,7 +416,9 @@ const gameState = {
     ruler: 0,        // 无敌戒尺
     homework: 0,     // 课后习题
     flower: 0        // 无尽小红花
-  }
+  },
+  // --- 考试历史记录 ---
+  examHistory: []  // 每次考试记录 { date, avgScore, studentScores: [{name, score}] }
 };
 
 // ============================================
@@ -585,7 +587,7 @@ function startNewQuestion() {
 
   const writeInterval = setInterval(() => {
     if (gameState.isPaused) return;
-    
+
     if (charIndex < fullText.length) {
       chalkText.textContent += fullText[charIndex];
       charIndex++;
@@ -693,7 +695,13 @@ function showSleepIcon(el) {
   removeStatusIcons(el);
   const icon = document.createElement('div');
   icon.className = 'student-status-icon sleep-icon';
-  icon.innerHTML = 'Z<span>z</span><span>z</span>';
+  icon.textContent = 'Z';
+  const z1 = document.createElement('span');
+  z1.textContent = 'z';
+  const z2 = document.createElement('span');
+  z2.textContent = 'z';
+  icon.appendChild(z1);
+  icon.appendChild(z2);
   el.appendChild(icon);
 }
 
@@ -756,7 +764,7 @@ function updateAllTierBadges() {
     const badge = el.querySelector('.student-tier-badge');
     if (badge) {
       badge.textContent = studentData.tier;
-      badge.className = 'student-tier-badge ' + 
+      badge.className = 'student-tier-badge ' +
         (studentData.tier === '学霸' ? 'tier-top' : studentData.tier === '学渣' ? 'tier-low' : 'tier-mid');
     }
   });
@@ -838,7 +846,7 @@ function generateAnswer(student, question) {
   // 公式：(正确率×70% - 淘气值×20% + 注意力×20% + 心情×20%)，上限90%
   let correctChance = accuracy * 0.7 - naughty * 0.2 + attention * 0.2 + mood * 0.2;
   correctChance = Math.max(0, Math.min(90, correctChance)); // 限制在0-90%范围内
-  
+
   const roll = Math.random() * 100;
   const isCorrect = roll < correctChance;
 
@@ -943,8 +951,8 @@ function triggerPrincipalPunishment() {
     principalHead.style.visibility = 'hidden';
   }, 1600);
 
-  // 扣工资
-  gameState.salary -= 50;
+  // 扣工资（下限保护，防止负数）
+  gameState.salary = Math.max(0, gameState.salary - 50);
   updateSalaryDisplay();
 
   // 巨大的浮动扣款文字 - 显示在血条上方
@@ -1181,7 +1189,7 @@ function triggerPaperAirplane(fromIndex) {
 /** 启动课堂随机事件定时器（游戏开始后调用） */
 function startClassroomEventTimer() {
   // 设计理由：不秒初始化冯射防止第一题前就触发事件
-  setInterval(() => {
+  gameState.classroomEventInterval = setInterval(() => {
     if (gameState.eventActive) return;
     if (gameState.questionPhase === 'evaluating') return;
     if (gameState.isBreakTime) return;  // 课间不触发纸飞机、传纸条事件
@@ -1310,6 +1318,11 @@ function enterBreakTime() {
   document.querySelectorAll('.student').forEach(el => {
     el.style.visibility = 'hidden';
   });
+
+  // 隐藏开始考试按钮
+  if (startExamBtn) {
+    startExamBtn.classList.add('hidden');
+  }
 
   SoundFX.bell();
   showBreakMessage('下课啦！', '课间十分钟 · 自由活动 🎉', true);
@@ -1785,6 +1798,11 @@ function endBreakTime() {
     el.style.visibility = 'visible';
   });
 
+  // 恢复显示开始考试按钮
+  if (startExamBtn) {
+    startExamBtn.classList.remove('hidden');
+  }
+
   // 课间休息恢复机制：学生注意力+15，心情+10
   gameState.students.forEach(s => {
     s.attention = Math.min(100, s.attention + 15);
@@ -1845,7 +1863,7 @@ function initStartScreen() {
 function loadSavesList() {
   if (!savesList || !noSavesTip) return;
 
-  savesList.innerHTML = '';
+  savesList.replaceChildren();  // NOTE: 安全替代 innerHTML = ''
   const saves = getAllSaves();
 
   if (saves.length === 0) {
@@ -1886,14 +1904,14 @@ function getAllSaves() {
 function createSaveCard(save) {
   const card = document.createElement('div');
   card.className = 'save-card';
-  
+
   let genderIcon = '👨';
   if (save.gender === '女') {
     genderIcon = '👩';
   } else if (save.gender === '青鸾') {
     genderIcon = '🦚';
   }
-  
+
   card.innerHTML = `
     <div class="save-avatar">${genderIcon}</div>
     <div class="save-info">
@@ -1960,6 +1978,7 @@ function saveGame() {
     questionCount: gameState.questionCount,
     completedQuestionCount: gameState.completedQuestionCount,
     inventory: gameState.inventory,
+    examHistory: gameState.examHistory,  // BUG-2 修复：存档考试历史
     timestamp: Date.now()
   };
   localStorage.setItem(saveKey, JSON.stringify(saveData));
@@ -1976,7 +1995,8 @@ function handleLoadSave(key) {
       gameState.questionCount = data.questionCount || 0;
       gameState.completedQuestionCount = data.completedQuestionCount || 0;
       gameState.inventory = data.inventory || { megaphone: 0, ruler: 0, homework: 0, flower: 0 };
-      
+      gameState.examHistory = data.examHistory || [];  // BUG-2 修复：恢复考试历史
+
       enterGame();
     }
   } catch (e) {
@@ -1989,20 +2009,20 @@ function handleDeleteSave(key, name) {
   const dialog = document.getElementById('deleteConfirmDialog');
   const cancelBtn = document.getElementById('deleteCancelBtn');
   const confirmBtn = document.getElementById('deleteConfirmBtn');
-  
+
   if (!dialog) return;
-  
+
   let pendingDeleteKey = key;
-  
+
   const closeDialog = () => {
     dialog.classList.add('hidden');
     pendingDeleteKey = null;
   };
-  
+
   const handleCancel = () => {
     closeDialog();
   };
-  
+
   const handleConfirm = () => {
     if (pendingDeleteKey) {
       localStorage.removeItem(pendingDeleteKey);
@@ -2010,10 +2030,10 @@ function handleDeleteSave(key, name) {
     }
     closeDialog();
   };
-  
+
   cancelBtn.onclick = handleCancel;
   confirmBtn.onclick = handleConfirm;
-  
+
   dialog.classList.remove('hidden');
 }
 
@@ -2026,7 +2046,7 @@ function enterGame() {
   if (teacherImg) {
     // 移除之前可能添加的特殊类
     teacherImg.classList.remove('teacher-x');
-    
+
     if (gameState.teacherGender === '女') {
       teacherImg.src = 'assets/characters/teacher_F_standing.png';
     } else if (gameState.teacherGender === '青鸾') {
@@ -2083,11 +2103,11 @@ function updateChalkboard(text) {
 function updateSalaryDisplay() {
   const hpFill = document.getElementById('teacherHpFill');
   const hpValue = document.getElementById('teacherHpValue');
-  
+
   if (hpFill) {
     const percentage = Math.max(0, Math.min(100, (gameState.salary / 10000) * 100));
     hpFill.style.width = `${percentage}%`;
-    
+
     // 更新数值显示 - 纯数字，移除￥符号
     if (hpValue) {
       hpValue.textContent = gameState.salary;
@@ -2139,6 +2159,7 @@ function initBlackboardClick() {
 
   blackboard.style.cursor = 'pointer';
   blackboard.addEventListener('click', () => {
+    if (examState.isActive) return;
     if (gameState.questionPhase === 'idle') {
       startNewQuestion();
     }
@@ -2282,6 +2303,11 @@ function handleMobileStudentClick(e) {
   const studentData = gameState.students[index];
   if (!studentData) return;
 
+  if (examState.isActive) {
+    handleStudentExamClick(index);
+    return;
+  }
+
   if (gameState.questionPhase === 'evaluating') return;
 
   if (gameState.activeTooltipStudentId === studentData.id) {
@@ -2314,6 +2340,11 @@ function handleDesktopStudentClick(e) {
   const student = e.currentTarget;
   const index = parseInt(Array.from(document.querySelectorAll('.student')).indexOf(student), 10);
   const imgContainer = student.querySelector('.student-img');
+
+  if (examState.isActive) {
+    handleStudentExamClick(index);
+    return;
+  }
 
   if (gameState.questionPhase === 'evaluating') return;
 
@@ -2367,16 +2398,16 @@ function initEarlyDismissBtn() {
 
 function handleEarlyDismiss() {
   const btn = document.getElementById('earlyDismissBtn');
-  
+
   // 防止重复点击
   if (isEarlyDismissing) return;
-  
+
   // 检查是否已经在课间
   if (gameState.isBreakTime) {
     pushEventLog('已经在课间了，别再敲铃铛啦！', 'neutral');
     return;
   }
-  
+
   // 检查是否至少完成1道题（使用已完成题目计数）
   if (gameState.completedQuestionCount < 1) {
     pushEventLog('老师，好歹先讲一道题再下课吧！', 'neutral');
@@ -2389,7 +2420,7 @@ function handleEarlyDismiss() {
 
 function showEarlyDismissConfirm() {
   const remainingQuestions = 10 - gameState.questionCount;
-  
+
   // 创建确认框
   const overlay = document.createElement('div');
   overlay.id = 'earlyDismissOverlay';
@@ -2406,19 +2437,19 @@ function showEarlyDismissConfirm() {
       </div>
     </div>
   `;
-  
+
   document.body.appendChild(overlay);
-  
+
   // 绑定按钮事件
   document.getElementById('btnEarlyDismissYes').addEventListener('click', () => {
     overlay.remove();
     executeEarlyDismiss();
   });
-  
+
   document.getElementById('btnEarlyDismissNo').addEventListener('click', () => {
     overlay.remove();
   });
-  
+
   // 点击背景关闭
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
@@ -2429,14 +2460,14 @@ function showEarlyDismissConfirm() {
 
 function executeEarlyDismiss() {
   const btn = document.getElementById('earlyDismissBtn');
-  
+
   // 设置锁
   isEarlyDismissing = true;
   btn.classList.add('disabled');
 
   // 播放摇晃动画
   btn.classList.add('shake-bell');
-  
+
   // 播放下课铃声音效
   SoundFX.bell();
 
@@ -2483,35 +2514,35 @@ function initShopAndInventory() {
   if (shopBtn) {
     shopBtn.addEventListener('click', openShop);
   }
-  
+
   // 背包按钮
   if (inventoryBtn) {
     inventoryBtn.addEventListener('click', openInventory);
   }
-  
+
   // 商店关闭按钮
   const shopClose = document.getElementById('shopCloseBtn');
   if (shopClose) {
     shopClose.addEventListener('click', closeShop);
   }
-  
+
   // 背包关闭按钮
   const inventoryClose = document.getElementById('inventoryCloseBtn');
   if (inventoryClose) {
     inventoryClose.addEventListener('click', closeInventory);
   }
-  
+
   // 点击遮罩关闭
   if (shopPanel) {
     const backdrop = shopPanel.querySelector('.panel-backdrop');
     if (backdrop) backdrop.addEventListener('click', closeShop);
   }
-  
+
   if (inventoryPanel) {
     const backdrop = inventoryPanel.querySelector('.panel-backdrop');
     if (backdrop) backdrop.addEventListener('click', closeInventory);
   }
-  
+
   // 绑定购买按钮
   document.querySelectorAll('.buy-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -2576,19 +2607,19 @@ function updateShopButtons() {
 function buyItem(itemKey) {
   const item = SHOP_ITEMS[itemKey];
   if (!item) return;
-  
+
   if (gameState.salary < item.price) {
     pushEventLog('工资不够，买不起这个道具！', 'important');
     return;
   }
-  
+
   gameState.salary -= item.price;
   gameState.inventory[itemKey]++;
-  
+
   updateSalaryDisplay();
   updateShopButtons();
   pushEventLog(`购买了 ${item.name}！`, 'positive');
-  
+
   // 自动保存
   saveGame();
 }
@@ -2596,20 +2627,20 @@ function buyItem(itemKey) {
 function renderInventory() {
   const itemsContainer = document.getElementById('inventoryItems');
   const emptyTip = document.getElementById('inventoryEmpty');
-  
+
   if (!itemsContainer) return;
-  
-  itemsContainer.innerHTML = '';
-  
+
+  itemsContainer.replaceChildren();  // NOTE: 安全替代 innerHTML = ''
+
   const hasItems = Object.values(gameState.inventory).some(count => count > 0);
-  
+
   if (!hasItems) {
     if (emptyTip) emptyTip.classList.remove('hidden');
     return;
   }
-  
+
   if (emptyTip) emptyTip.classList.add('hidden');
-  
+
   Object.entries(gameState.inventory).forEach(([key, count]) => {
     if (count > 0) {
       const item = SHOP_ITEMS[key];
@@ -2624,7 +2655,7 @@ function renderInventory() {
         <div class="item-count">x${count}</div>
         <button class="use-btn" data-item="${key}">使用</button>
       `;
-      
+
       itemEl.querySelector('.use-btn').addEventListener('click', () => useItem(key));
       itemsContainer.appendChild(itemEl);
     }
@@ -2633,9 +2664,9 @@ function renderInventory() {
 
 function useItem(itemKey) {
   if (gameState.inventory[itemKey] <= 0) return;
-  
+
   gameState.inventory[itemKey]--;
-  
+
   switch (itemKey) {
     case 'megaphone':
       gameState.students.forEach(s => {
@@ -2643,21 +2674,21 @@ function useItem(itemKey) {
       });
       pushEventLog('📢 使用了超级大喇叭！全班注意力+2！', 'positive');
       break;
-      
+
     case 'ruler':
       gameState.students.forEach(s => {
         s.naughty = Math.max(0, s.naughty - 2);
       });
       pushEventLog('📏 使用了无敌戒尺！全班淘气值-2！', 'positive');
       break;
-      
+
     case 'homework':
       gameState.students.forEach(s => {
         s.accuracy = Math.min(100, s.accuracy + 2);
       });
       pushEventLog('📝 布置了课后习题！全班正确率+2！', 'positive');
       break;
-      
+
     case 'flower':
       gameState.students.forEach(s => {
         s.mood = Math.min(100, s.mood + 2);
@@ -2665,7 +2696,7 @@ function useItem(itemKey) {
       pushEventLog('🌸 发放了无尽小红花！全班心情+2！', 'positive');
       break;
   }
-  
+
   updateStudentTiers();
   renderInventory();
   saveGame();
@@ -2678,7 +2709,127 @@ document.addEventListener('DOMContentLoaded', () => {
   initEarlyDismissBtn();
   initShopAndInventory();
   initGlobalClickHandler();
+  initExamSystem();
+  initBackToHomeBtn();
 });
+
+// ============================================
+//  返回主页系统
+// ============================================
+
+function initBackToHomeBtn() {
+  const backToHomeBtn = document.getElementById('backToHomeBtn');
+  if (backToHomeBtn) {
+    backToHomeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      backToHome();
+    });
+  }
+}
+
+/**
+ * 返回主页：保存当前进度 → 清理所有运行状态 → 切换到起始界面
+ * 设计理由：需要彻底清理课堂/课间/考试三个系统的定时器和UI状态，
+ * 否则重新加载存档时会出现残留状态混乱
+ */
+function backToHome() {
+  // 先保存当前游戏进度
+  if (gameState.teacherName) {
+    saveGame();
+  }
+
+  // --- 清理课堂系统 ---
+  if (gameState.classroomEventInterval) {
+    clearInterval(gameState.classroomEventInterval);
+    gameState.classroomEventInterval = null;
+  }
+  gameState.questionPhase = 'idle';
+  gameState.currentQuestion = null;
+  gameState.eventActive = false;
+
+  // --- 清理课间系统 ---
+  if (gameState.breakAnimId) {
+    cancelAnimationFrame(gameState.breakAnimId);
+    gameState.breakAnimId = null;
+  }
+  if (gameState.breakEventTimer) {
+    clearInterval(gameState.breakEventTimer);
+    gameState.breakEventTimer = null;
+  }
+  if (breakCountdownInterval) {
+    clearInterval(breakCountdownInterval);
+    breakCountdownInterval = null;
+  }
+  gameState.isBreakTime = false;
+
+  // 移除课间漫游元素
+  const classroom = document.querySelector('.classroom');
+  if (classroom) {
+    classroom.querySelectorAll('.break-avatar, .break-graffiti, #breakOverlay').forEach(el => el.remove());
+  }
+  const breakTimer = document.getElementById('breakTimer');
+  if (breakTimer) breakTimer.classList.add('hidden');
+  const btnEndBreak = document.getElementById('btnEndBreak');
+  if (btnEndBreak) btnEndBreak.classList.add('hidden');
+
+  // --- 清理考试系统 ---
+  if (examState.isActive) {
+    if (examState.timerInterval) {
+      clearInterval(examState.timerInterval);
+      examState.timerInterval = null;
+    }
+    if (examState.eventTimer) {
+      clearTimeout(examState.eventTimer);
+      examState.eventTimer = null;
+    }
+    if (examState.eventTimeout) {
+      clearTimeout(examState.eventTimeout);
+      examState.eventTimeout = null;
+    }
+    examState.isActive = false;
+    examState.currentEvent = null;
+    hideExamModeUI();
+  }
+  const examBird = document.getElementById('examBird');
+  if (examBird) examBird.remove();
+  if (examTimerBar) examTimerBar.classList.add('hidden');
+  if (startExamBtn) startExamBtn.classList.remove('hidden');
+
+  // --- 清理弹窗/面板 ---
+  ['scoreReport', 'examMenuPanel', 'classScorePanel', 'studentScorePanel', 'earlyDismissOverlay'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  });
+  const judgmentPanel = document.getElementById('judgmentPanel');
+  if (judgmentPanel) judgmentPanel.classList.remove('active');
+  const reactionPanel = document.getElementById('reactionPanel');
+  if (reactionPanel) reactionPanel.classList.add('hidden');
+
+  // 关闭商店/背包
+  if (shopPanel) shopPanel.classList.add('hidden');
+  if (inventoryPanel) inventoryPanel.classList.add('hidden');
+  gameState.isPaused = false;
+
+  // --- 清理学生状态 ---
+  clearAllStudentStates();
+  document.querySelectorAll('.student').forEach(el => {
+    setStudentPose(el, 'sitting');
+    delete el.dataset.examMode;
+  });
+
+  // 隐藏特效
+  hideTooltip();
+  const effectsContainer = document.getElementById('effectsContainer');
+  if (effectsContainer) effectsContainer.replaceChildren();
+
+  // --- 切换界面 ---
+  gameScreen.classList.remove('active');
+  startScreen.classList.add('active');
+  loadSavesList();
+
+  // 重置黑板文字
+  if (chalkText) chalkText.textContent = '欢迎来到课堂！';
+}
 
 function initGlobalClickHandler() {
   document.addEventListener('click', (e) => {
@@ -2693,3 +2844,1027 @@ function initGlobalClickHandler() {
     }
   });
 }
+
+// ============================================
+// 期末考试系统
+// ============================================
+
+const EXAM_DURATION = 30;
+const EVENT_DURATION = 3000;
+
+const examState = {
+  isActive: false,
+  timeRemaining: EXAM_DURATION,
+  timerInterval: null,
+  eventTimer: null,
+  examResults: null,
+  currentEvent: null,
+  eventStudentIndex: null,
+  eventTimeout: null
+};
+
+const startExamBtn = document.getElementById('startExamBtn');
+const examScoreBtn = document.getElementById('examScoreBtn');
+const examTimerBar = document.getElementById('examTimerBar');
+const examTimerFill = document.getElementById('examTimerFill');
+const examTimerText = document.getElementById('examTimerText');
+const penHolder = document.getElementById('penHolder');
+
+function initExamSystem() {
+  if (startExamBtn) {
+    startExamBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      startExam();
+    });
+  }
+
+  if (examScoreBtn) {
+    examScoreBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      showExamMenu();
+    });
+  }
+
+  if (penHolder) {
+    penHolder.addEventListener('click', handlePenHolderClick);
+  }
+}
+
+function startExam() {
+  if (examState.isActive) return;
+
+  examState.isActive = true;
+  examState.timeRemaining = EXAM_DURATION;
+  examState.examResults = {
+    birdBonus: 0,
+    students: gameState.students.map((s, i) => ({
+      index: i,
+      name: s.name,
+      baseAccuracy: s.accuracy,
+      cheated: false,
+      caught: false,
+      noPen: false,
+      helped: false,
+      finalScore: 0
+    }))
+  };
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  if (startExamBtn) {
+    startExamBtn.classList.add('hidden');
+  }
+
+  if (examTimerBar) {
+    examTimerBar.classList.remove('hidden');
+  }
+
+  updateExamTimerDisplay();
+  showExamModeUI();
+
+  pushEventLog('📝 期末考试开始！请保持安静！', 'important');
+
+  examState.timerInterval = setInterval(updateExamTimer, 1000);
+
+  scheduleRandomEvent();
+}
+
+function updateExamTimer() {
+  examState.timeRemaining--;
+
+  updateExamTimerDisplay();
+
+  if (examState.timeRemaining <= 0) {
+    endExam();
+  }
+}
+
+function updateExamTimerDisplay() {
+  const percentage = (examState.timeRemaining / EXAM_DURATION) * 100;
+
+  if (examTimerFill) {
+    examTimerFill.style.width = `${percentage}%`;
+
+    examTimerFill.classList.remove('phase-green', 'phase-yellow', 'phase-red');
+
+    if (examState.timeRemaining > 20) {
+      examTimerFill.classList.add('phase-green');
+    } else if (examState.timeRemaining > 10) {
+      examTimerFill.classList.add('phase-yellow');
+    } else {
+      examTimerFill.classList.add('phase-red');
+    }
+  }
+
+  if (examTimerText) {
+    examTimerText.textContent = examState.timeRemaining;
+  }
+}
+
+function showExamModeUI() {
+  if (chalkText) {
+    chalkText.textContent = '📝 考试中...';
+    chalkText.classList.add('exam-mode');
+  }
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  examEmojis.forEach(emoji => {
+    emoji.classList.remove('hidden');
+    emoji.textContent = '✏️';
+  });
+
+  document.querySelectorAll('.student').forEach((el, index) => {
+    el.dataset.examMode = 'true';
+    const studentData = gameState.students[index];
+    if (studentData) {
+      studentData.isSleeping = false;
+      studentData.isRaising = false;
+    }
+    const sleepingIcon = el.querySelector('.student-status-icon');
+    if (sleepingIcon) {
+      sleepingIcon.classList.add('hidden');
+    }
+    const imgContainer = el.querySelector('.student-img');
+    if (imgContainer) {
+      const sittingImg = imgContainer.querySelector('.state-sitting');
+      if (sittingImg) {
+        sittingImg.classList.add('active');
+      }
+      const raisingImg = imgContainer.querySelector('.state-raising');
+      if (raisingImg) {
+        raisingImg.classList.remove('active');
+      }
+      const standingImg = imgContainer.querySelector('.state-standing');
+      if (standingImg) {
+        standingImg.classList.remove('active');
+      }
+    }
+  });
+}
+
+function hideExamModeUI() {
+  if (chalkText) {
+    chalkText.textContent = '欢迎来到课堂！';
+    chalkText.classList.remove('exam-mode');
+  }
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  examEmojis.forEach(emoji => {
+    emoji.classList.add('hidden');
+  });
+
+  document.querySelectorAll('.student').forEach(el => {
+    delete el.dataset.examMode;
+  });
+}
+
+function scheduleRandomEvent() {
+  if (!examState.isActive) return;
+
+  const minDelay = 5000;
+  const maxDelay = 15000;
+  const delay = randomInt(minDelay, maxDelay);
+
+  examState.eventTimer = setTimeout(() => {
+    if (examState.isActive && !examState.currentEvent) {
+      triggerRandomEvent();
+    }
+    scheduleRandomEvent();
+  }, delay);
+}
+
+function triggerRandomEvent() {
+  const events = ['cheat', 'bird', 'noPen'];
+  const event = randomPick(events);
+
+  switch (event) {
+    case 'cheat':
+      triggerCheatEvent();
+      break;
+    case 'bird':
+      triggerBirdEvent();
+      break;
+    case 'noPen':
+      triggerNoPenEvent();
+      break;
+  }
+}
+
+function triggerCheatEvent() {
+  const availableStudents = examState.examResults.students.filter(s => !s.caught && !s.cheated);
+  if (availableStudents.length === 0) return;
+
+  const student = randomPick(availableStudents);
+  examState.currentEvent = 'cheat';
+  examState.eventStudentIndex = student.index;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[student.index]) {
+    examEmojis[student.index].textContent = '👀';
+    examEmojis[student.index].classList.add('event-active');
+  }
+
+  pushEventLog('⚠️ 有人作弊！快点击制止！', 'negative');
+
+  examState.eventTimeout = setTimeout(() => {
+    if (examState.currentEvent === 'cheat' && examState.eventStudentIndex === student.index) {
+      handleCheatFailed(student.index);
+    }
+  }, EVENT_DURATION);
+}
+
+function handleCheatSuccess(studentIndex) {
+  if (examState.currentEvent !== 'cheat') return;
+
+  clearTimeout(examState.eventTimeout);
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.caught = true;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  pushEventLog(`✅ 制止了${student.name}的作弊行为！`, 'positive');
+}
+
+function handleCheatFailed(studentIndex) {
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.cheated = true;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  gameState.salary = Math.max(0, gameState.salary - 50);
+  updateSalaryDisplay();  // BUG-1 修复：函数名修正
+
+  triggerPrincipalPunish('考试不好好监考，扣50！');
+
+  pushEventLog(`❌ ${student.name}作弊成功！校长扣了50工资！`, 'negative');
+}
+
+function triggerBirdEvent() {
+  examState.currentEvent = 'bird';
+
+  const bird = document.createElement('div');
+  bird.id = 'examBird';
+  bird.className = 'exam-bird';
+  bird.textContent = '🐦';
+  document.querySelector('.classroom').appendChild(bird);
+
+  pushEventLog('🐦 小鸟飞进教室了！快驱赶！', 'neutral');
+
+  bird.addEventListener('click', () => {
+    handleBirdSuccess(bird);
+  });
+
+  setTimeout(() => {
+    if (document.getElementById('examBird')) {
+      handleBirdFailed(bird);
+    }
+  }, 6500);
+}
+
+function handleBirdSuccess(bird) {
+  if (examState.currentEvent !== 'bird') return;
+
+  examState.currentEvent = null;
+  examState.examResults.birdBonus = 5;
+
+  if (bird && bird.parentNode) {
+    bird.remove();
+  }
+
+  pushEventLog('✅ 驱赶成功！全班+5分！', 'positive');
+}
+
+function handleBirdFailed(bird) {
+  examState.currentEvent = null;
+  examState.examResults.birdBonus = -5;
+
+  if (bird && bird.parentNode) {
+    bird.remove();
+  }
+
+  pushEventLog('❌ 小鸟飞走了...全班-5分！', 'negative');
+}
+
+function triggerNoPenEvent() {
+  const availableStudents = examState.examResults.students.filter(s => !s.noPen && !s.helped);
+  if (availableStudents.length === 0) return;
+
+  const student = randomPick(availableStudents);
+  examState.currentEvent = 'noPen';
+  examState.eventStudentIndex = student.index;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[student.index]) {
+    examEmojis[student.index].textContent = '😭';
+    examEmojis[student.index].classList.add('event-active');
+  }
+
+  if (penHolder) {
+    penHolder.classList.add('pen-active');
+  }
+
+  pushEventLog(`😢 ${student.name}没笔了！快点击笔筒！`, 'negative');
+
+  examState.eventTimeout = setTimeout(() => {
+    if (examState.currentEvent === 'noPen' && examState.eventStudentIndex === student.index) {
+      handleNoPenFailed(student.index);
+    }
+  }, EVENT_DURATION);
+}
+
+function handleNoPenSuccess() {
+  if (examState.currentEvent !== 'noPen') return;
+
+  const studentIndex = examState.eventStudentIndex;
+  clearTimeout(examState.eventTimeout);
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.helped = true;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  if (penHolder) {
+    penHolder.classList.remove('pen-active');
+  }
+
+  pushEventLog(`✅ 借给了${student.name}一支笔！`, 'positive');
+}
+
+function handleNoPenFailed(studentIndex) {
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.noPen = true;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  if (penHolder) {
+    penHolder.classList.remove('pen-active');
+  }
+
+  pushEventLog(`❌ ${student.name}没笔答题，-10分！`, 'negative');
+}
+
+function handlePenHolderClick() {
+  if (!examState.isActive) {
+    pushEventLog('🖊️ 笔筒：考试时才能使用哦！', 'neutral');
+    return;
+  }
+
+  if (examState.currentEvent === 'noPen') {
+    handleNoPenSuccess();
+  } else {
+    pushEventLog('🖊️ 笔筒：现在没人需要笔哦~', 'neutral');
+  }
+}
+
+function handleStudentExamClick(studentIndex) {
+  if (!examState.isActive) return;
+
+  if (examState.currentEvent === 'cheat' && examState.eventStudentIndex === studentIndex) {
+    handleCheatSuccess(studentIndex);
+  }
+}
+
+function endExam() {
+  if (examState.timerInterval) {
+    clearInterval(examState.timerInterval);
+    examState.timerInterval = null;
+  }
+
+  if (examState.eventTimer) {
+    clearTimeout(examState.eventTimer);
+    examState.eventTimer = null;
+  }
+
+  if (examState.eventTimeout) {
+    clearTimeout(examState.eventTimeout);
+    examState.eventTimeout = null;
+  }
+
+  const bird = document.getElementById('examBird');
+  if (bird) bird.remove();
+
+  if (penHolder) {
+    penHolder.classList.remove('pen-active');
+  }
+
+  examState.currentEvent = null;
+  examState.isActive = false;
+
+  SoundFX.bell();
+
+  calculateFinalScores();
+
+  hideExamModeUI();
+
+  if (examTimerBar) {
+    examTimerBar.classList.add('hidden');
+  }
+
+  showScoreReport();
+
+  pushEventLog('🎉 考试结束！大家快看成绩单！', 'important');
+}
+
+function calculateFinalScores() {
+  examState.examResults.students.forEach(student => {
+    const gameStudent = gameState.students[student.index];
+    const accuracy = gameStudent.accuracy;
+    const naughty = gameStudent.naughty;
+    const attention = gameStudent.attention;
+    const mood = gameStudent.mood;
+
+    let baseScore = accuracy * 0.7 - naughty * 0.2 + attention * 0.2 + mood * 0.2;
+
+    const randomVariation = randomInt(-10, 10);
+
+    let finalScore = baseScore + randomVariation;
+
+    finalScore += examState.examResults.birdBonus;
+
+    if (student.noPen) {
+      finalScore -= 10;
+    }
+
+    if (student.cheated && !student.caught) {
+      finalScore += 10;
+    }
+
+    student.finalScore = Math.max(0, Math.min(100, Math.round(finalScore)));
+
+    if (student.cheated && !student.caught) {
+      gameStudent.accuracy = Math.max(0, gameStudent.accuracy - 5);
+    }
+  });
+
+  // 保存考试历史记录
+  const avgScore = Math.round(
+    examState.examResults.students.reduce((sum, s) => sum + s.finalScore, 0) /
+    examState.examResults.students.length
+  );
+
+  const examRecord = {
+    date: new Date().toLocaleString('zh-CN'),
+    avgScore: avgScore,
+    studentScores: examState.examResults.students.map(s => ({
+      name: s.name,
+      score: s.finalScore
+    }))
+  };
+
+  gameState.examHistory.push(examRecord);
+  // 只保留最近3次考试记录
+  if (gameState.examHistory.length > 3) {
+    gameState.examHistory.shift();
+  }
+
+  updateStudentTiers();
+  saveGame();
+}
+
+function showScoreReport() {
+  const existingReport = document.getElementById('scoreReport');
+  if (existingReport) existingReport.remove();
+
+  const report = document.createElement('div');
+  report.id = 'scoreReport';
+  report.className = 'score-report';
+
+  let scoresHtml = examState.examResults.students.map(student => {
+    const isPassed = student.finalScore >= 60;
+    const scoreClass = isPassed ? 'score-pass' : 'score-fail';
+    const statusIcon = isPassed ? '✅' : '❌';
+
+    return `
+      <div class="score-item ${scoreClass}">
+        <span class="score-name">${student.name}</span>
+        <span class="score-value">${student.finalScore}分 ${statusIcon}</span>
+      </div>
+    `;
+  }).join('');
+
+  const passedCount = examState.examResults.students.filter(s => s.finalScore >= 60).length;
+  const avgScore = Math.round(
+    examState.examResults.students.reduce((sum, s) => sum + s.finalScore, 0) /
+    examState.examResults.students.length
+  );
+
+  report.innerHTML = `
+    <div class="score-report-content">
+      <div class="score-report-header">
+        <h2>📋 期末考试成绩单</h2>
+      </div>
+      <div class="score-report-body">
+        <div class="score-list">
+          ${scoresHtml}
+        </div>
+        <div class="score-summary">
+          <div class="summary-item">
+            <span class="summary-label">平均分</span>
+            <span class="summary-value">${avgScore}分</span>
+          </div>
+          <div class="summary-item">
+            <span class="summary-label">及格人数</span>
+            <span class="summary-value">${passedCount}/6</span>
+          </div>
+        </div>
+      </div>
+      <div class="score-report-footer">
+        <button class="upload-score-btn" id="uploadScoreBtn">🚀 上传成绩打榜！</button>
+        <button class="score-close-btn" id="scoreCloseBtn">确定</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(report);
+
+  // 上传成绩打榜按钮
+  document.getElementById('uploadScoreBtn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    uploadScoreToCloud(e.target);
+  });
+
+  document.getElementById('scoreCloseBtn').addEventListener('click', () => {
+    report.remove();
+    if (startExamBtn) {
+      startExamBtn.classList.remove('hidden');
+    }
+    pushEventLog('🔔 下课啦！同学们自由活动~', 'positive');
+    if (typeof enterBreakTime === 'function') {
+      enterBreakTime();
+    }
+  });
+}
+
+// BUG-3 修复：统一校长惩罚函数，复用课堂版 triggerPrincipalPunishment() 的视觉效果
+function triggerPrincipalPunish(message) {
+  // 闪屏效果
+  flashRedOverlay.classList.remove('flash');
+  void flashRedOverlay.offsetWidth;
+  flashRedOverlay.classList.add('flash');
+
+  // 校长探头音效
+  SoundFX.punish();
+  if (principalHead) {
+    principalHead.classList.add('punish');
+    setTimeout(() => {
+      principalHead.classList.remove('punish');
+      principalHead.style.visibility = 'hidden';
+    }, 1600);
+  }
+
+  pushEventLog(`👨‍💼 校长：${message}`, 'negative');
+}
+
+// ============================================
+// 考试成绩菜单系统
+// ============================================
+
+function showExamMenu() {
+  const existingMenu = document.getElementById('examMenuPanel');
+  if (existingMenu) existingMenu.remove();
+
+  const menu = document.createElement('div');
+  menu.id = 'examMenuPanel';
+  menu.className = 'exam-menu-panel';
+
+  menu.innerHTML = `
+    <div class="exam-menu-content">
+      <h2 class="exam-menu-title">📊 考试成绩</h2>
+      <div class="exam-menu-buttons">
+        <button class="exam-menu-btn class-score" id="classScoreBtn">
+          <span>🏫</span>
+          <span>查看班级成绩</span>
+        </button>
+        <button class="exam-menu-btn student-score" id="studentScoreBtn">
+          <span>👥</span>
+          <span>查看学生成绩</span>
+        </button>
+        <button class="exam-menu-btn close-btn" id="examMenuCloseBtn">
+          <span>关闭</span>
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(menu);
+
+  document.getElementById('classScoreBtn').addEventListener('click', () => {
+    menu.remove();
+    showClassScoreHistory();
+  });
+
+  document.getElementById('studentScoreBtn').addEventListener('click', () => {
+    menu.remove();
+    showStudentScoreRanking();
+  });
+
+  document.getElementById('examMenuCloseBtn').addEventListener('click', () => {
+    menu.remove();
+  });
+
+  menu.addEventListener('click', (e) => {
+    if (e.target === menu) {
+      menu.remove();
+    }
+  });
+}
+
+function showClassScoreHistory() {
+  const existingPanel = document.getElementById('classScorePanel');
+  if (existingPanel) existingPanel.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'classScorePanel';
+  panel.className = 'exam-menu-panel';
+
+  let historyHtml = '';
+  if (gameState.examHistory.length === 0) {
+    historyHtml = '<p style="text-align: center; color: #666;">暂无考试记录</p>';
+  } else {
+    historyHtml = gameState.examHistory.map((record, index) => `
+      <div class="ranking-item rank-other" style="margin: 10px 0;">
+        <div class="ranking-name">
+          <span class="ranking-badge">第${gameState.examHistory.length - index}次</span>
+          <span>${record.date}</span>
+        </div>
+        <span class="ranking-score">平均分: ${record.avgScore}分</span>
+      </div>
+    `).reverse().join('');
+  }
+
+  panel.innerHTML = `
+    <div class="exam-menu-content">
+      <h2 class="exam-menu-title">🏫 班级成绩历史</h2>
+      <p style="text-align: center; color: #888; margin-bottom: 15px;">近三次考试平均分</p>
+      <div class="score-ranking-list">
+        ${historyHtml}
+      </div>
+      <button class="exam-menu-btn close-btn" id="classScoreCloseBtn" style="margin-top: 20px;">
+        <span>关闭</span>
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  document.getElementById('classScoreCloseBtn').addEventListener('click', () => {
+    panel.remove();
+  });
+
+  panel.addEventListener('click', (e) => {
+    if (e.target === panel) {
+      panel.remove();
+    }
+  });
+}
+
+function showStudentScoreRanking() {
+  const existingPanel = document.getElementById('studentScorePanel');
+  if (existingPanel) existingPanel.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'studentScorePanel';
+  panel.className = 'exam-menu-panel';
+
+  let rankingHtml = '';
+
+  if (gameState.examHistory.length === 0) {
+    rankingHtml = '<p style="text-align: center; color: #666;">暂无考试记录</p>';
+  } else {
+    const lastExam = gameState.examHistory[gameState.examHistory.length - 1];
+    const sortedStudents = [...lastExam.studentScores].sort((a, b) => b.score - a.score);
+
+    rankingHtml = sortedStudents.map((student, index) => {
+      let rankClass = 'rank-other';
+      let badge = '';
+
+      if (index === 0) {
+        rankClass = 'rank-1';
+        badge = '🥇';
+      } else if (index === 1) {
+        rankClass = 'rank-2';
+        badge = '🥈';
+      } else if (index === 2) {
+        rankClass = 'rank-3';
+        badge = '🥉';
+      }
+
+      return `
+        <div class="ranking-item ${rankClass}">
+          <div class="ranking-name">
+            <span class="ranking-badge">${badge || `第${index + 1}名`}</span>
+            <span>${student.name}</span>
+          </div>
+          <span class="ranking-score">${student.score}分</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  panel.innerHTML = `
+    <div class="exam-menu-content">
+      <h2 class="exam-menu-title">👥 学生成绩排名</h2>
+      <p style="text-align: center; color: #888; margin-bottom: 15px;">最后一次考试成绩</p>
+      <div class="score-ranking-list">
+        ${rankingHtml}
+      </div>
+      <button class="exam-menu-btn close-btn" id="studentScoreCloseBtn" style="margin-top: 20px;">
+        <span>关闭</span>
+      </button>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  document.getElementById('studentScoreCloseBtn').addEventListener('click', () => {
+    panel.remove();
+  });
+
+  panel.addEventListener('click', (e) => {
+    if (e.target === panel) {
+      panel.remove();
+    }
+  });
+}
+
+// ============================================
+// 排行榜系统 - CloudBase 云开发
+// ============================================
+
+/**
+ * 腾讯云 CloudBase 初始化
+ * 设计理由：使用匿名登录，无需用户注册即可上传成绩
+ */
+let cloudApp = null;
+let cloudDb = null;
+let cloudAuthReady = false;
+
+async function initCloudBase() {
+  try {
+    cloudApp = cloudbase.init({
+      env: 'weipai-9gu4rudvc76f92f9'
+    });
+    const auth = cloudApp.auth({ persistence: 'local' });
+    // 检查是否已登录
+    const loginState = await auth.getLoginState();
+    if (!loginState) {
+      await auth.anonymousAuthProvider().signIn();
+    }
+    cloudDb = cloudApp.database();
+    cloudAuthReady = true;
+  } catch (err) {
+    console.error('CloudBase 初始化失败:', err);
+    cloudAuthReady = false;
+  }
+}
+
+// 页面加载时就初始化 CloudBase
+initCloudBase();
+
+// --- 排行榜维度定义 ---
+const LEADERBOARD_TABS = [
+  { key: 'classAvg', label: '🏫 班级榜', desc: '班级平均分' },
+  { key: 'topStudent', label: '🎓 学霸榜', desc: '综合实力最强' },
+  { key: 'accuracy', label: '📝 正确榜', desc: '正确率最高' },
+  { key: 'naughty', label: '😈 淘气榜', desc: '淘气值最高' },
+  { key: 'attention', label: '👀 专心榜', desc: '注意力最高' },
+  { key: 'mood', label: '😊 开心榜', desc: '心情值最高' }
+];
+
+/**
+ * 上传成绩到云端
+ * 计算 6 个维度的最高分，打包写入 leaderboard 集合
+ */
+async function uploadScoreToCloud(btnEl) {
+  if (!cloudAuthReady || !cloudDb) {
+    await initCloudBase();
+    if (!cloudAuthReady) {
+      pushEventLog('❌ 云端连接失败，请检查网络后重试', 'negative');
+      return;
+    }
+  }
+
+  btnEl.disabled = true;
+  btnEl.textContent = '⏳ 上传中...';
+
+  try {
+    const students = gameState.students;
+    const examResults = examState.examResults;
+
+    // 1. 班级榜：本次考试平均分
+    const avgScore = Math.round(
+      examResults.students.reduce((sum, s) => sum + s.finalScore, 0) / examResults.students.length
+    );
+
+    // 2. 学霸榜：综合公式最高分
+    let topStudentScore = -Infinity;
+    let topStudentName = '';
+    students.forEach(s => {
+      const score = Math.round(s.accuracy * 0.7 - s.naughty * 0.2 + s.attention * 0.2 + s.mood * 0.2);
+      if (score > topStudentScore) {
+        topStudentScore = score;
+        topStudentName = s.name;
+      }
+    });
+
+    // 3-6. 单项最高
+    const findMax = (prop) => {
+      let best = { name: '', value: -1 };
+      students.forEach(s => {
+        if (s[prop] > best.value) {
+          best = { name: s.name, value: s[prop] };
+        }
+      });
+      return best;
+    };
+
+    const maxAccuracy = findMax('accuracy');
+    const maxNaughty = findMax('naughty');
+    const maxAttention = findMax('attention');
+    const maxMood = findMax('mood');
+
+    const teacherName = gameState.teacherName;
+
+    // 打包成6条记录写入云端
+    const records = [
+      { board: 'classAvg', teacher: teacherName, student: '全班', score: avgScore },
+      { board: 'topStudent', teacher: teacherName, student: topStudentName, score: topStudentScore },
+      { board: 'accuracy', teacher: teacherName, student: maxAccuracy.name, score: maxAccuracy.value },
+      { board: 'naughty', teacher: teacherName, student: maxNaughty.name, score: maxNaughty.value },
+      { board: 'attention', teacher: teacherName, student: maxAttention.name, score: maxAttention.value },
+      { board: 'mood', teacher: teacherName, student: maxMood.name, score: maxMood.value }
+    ];
+
+    const collection = cloudDb.collection('leaderboard');
+
+    for (const record of records) {
+      await collection.add({
+        ...record,
+        timestamp: Date.now()
+      });
+    }
+
+    btnEl.textContent = '✅ 已上传';
+    btnEl.disabled = true;
+    pushEventLog('🏆 成绩已上传全服排行榜！', 'positive');
+  } catch (err) {
+    console.error('上传失败:', err);
+    btnEl.textContent = '❌ 上传失败，点击重试';
+    btnEl.disabled = false;
+    pushEventLog('❌ 成绩上传失败，请重试', 'negative');
+  }
+}
+
+// --- 首页排行榜入口 ---
+function initLeaderboardBtn() {
+  const btn = document.getElementById('leaderboardBtn');
+  if (btn) {
+    btn.addEventListener('click', () => showLeaderboardPanel());
+  }
+}
+
+/**
+ * 展示全服排行榜面板
+ * 6个 Tab 对应 6 个维度，点击切换拉取云端数据
+ */
+function showLeaderboardPanel() {
+  const existing = document.getElementById('leaderboardPanel');
+  if (existing) existing.remove();
+
+  const panel = document.createElement('div');
+  panel.id = 'leaderboardPanel';
+  panel.className = 'leaderboard-panel';
+
+  const tabsHtml = LEADERBOARD_TABS.map((tab, i) =>
+    `<button class="leaderboard-tab ${i === 0 ? 'active' : ''}" data-board="${tab.key}">${tab.label}</button>`
+  ).join('');
+
+  panel.innerHTML = `
+    <div class="leaderboard-content">
+      <div class="leaderboard-header">
+        <h2>🏆 全服光荣榜</h2>
+      </div>
+      <div class="leaderboard-tabs">
+        ${tabsHtml}
+      </div>
+      <div class="leaderboard-list" id="lbListContainer">
+        <div class="leaderboard-loading">⏳ 加载中...</div>
+      </div>
+      <div class="leaderboard-footer">
+        <button class="lb-close-btn" id="lbCloseBtn">关闭</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // Tab 切换事件
+  panel.querySelectorAll('.leaderboard-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      panel.querySelectorAll('.leaderboard-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      fetchLeaderboard(tab.dataset.board);
+    });
+  });
+
+  // 关闭按钮
+  document.getElementById('lbCloseBtn').addEventListener('click', () => panel.remove());
+
+  // 点击背景关闭
+  panel.addEventListener('click', (e) => {
+    if (e.target === panel) panel.remove();
+  });
+
+  // 默认加载第一个 Tab
+  fetchLeaderboard(LEADERBOARD_TABS[0].key);
+}
+
+/**
+ * 从云端拉取排行榜数据并渲染 Top 10
+ * @param {string} boardKey - 榜单类型 key
+ */
+async function fetchLeaderboard(boardKey) {
+  const container = document.getElementById('lbListContainer');
+  if (!container) return;
+
+  container.innerHTML = '<div class="leaderboard-loading">⏳ 加载中...</div>';
+
+  if (!cloudAuthReady || !cloudDb) {
+    await initCloudBase();
+    if (!cloudAuthReady) {
+      container.innerHTML = '<div class="leaderboard-empty">❌ 云端连接失败，请检查网络</div>';
+      return;
+    }
+  }
+
+  try {
+    const res = await cloudDb.collection('leaderboard')
+      .where({ board: boardKey })
+      .orderBy('score', 'desc')
+      .limit(10)
+      .get();
+
+    const data = res.data || [];
+
+    if (data.length === 0) {
+      container.innerHTML = '<div class="leaderboard-empty">暂无数据，快去考试上传成绩吧！</div>';
+      return;
+    }
+
+    const unit = boardKey === 'classAvg' ? '分' : '';
+
+    container.innerHTML = data.map((item, index) => {
+      const rankClass = index < 3 ? `rank-${index + 1}` : '';
+      const medals = ['🥇', '🥈', '🥉'];
+      const rankDisplay = index < 3 ? medals[index] : `${index + 1}`;
+      const studentLabel = item.student === '全班' ? '班级' : `学生: ${item.student}`;
+
+      return `
+        <div class="lb-rank-item ${rankClass}">
+          <div class="lb-rank-num">${rankDisplay}</div>
+          <div class="lb-rank-info">
+            <div class="lb-rank-teacher">${item.teacher}老师</div>
+            <div class="lb-rank-student">${studentLabel}</div>
+          </div>
+          <div class="lb-rank-score">${item.score}${unit}</div>
+        </div>
+      `;
+    }).join('');
+
+  } catch (err) {
+    console.error('拉取排行榜失败:', err);
+    container.innerHTML = '<div class="leaderboard-empty">❌ 加载失败，请稍后重试</div>';
+  }
+}
+
+// 在 DOMContentLoaded 中追加初始化
+document.addEventListener('DOMContentLoaded', () => {
+  initLeaderboardBtn();
+});

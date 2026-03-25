@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@400;700&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css">
+  <script src="https://imgcache.qq.com/qcloud/cloudbase-js-sdk/1.7.1/cloudbase.full.js"></script>
 </head>
 
 <body>
@@ -54,6 +55,12 @@
           <span class="btn-icon">🎮</span>
           <span class="btn-text">新建游戏</span>
         </button>
+
+        <!-- 全服排行榜按钮 -->
+        <button id="leaderboardBtn" class="leaderboard-btn">
+          <span class="btn-icon">🏆</span>
+          <span class="btn-text">全服排行榜</span>
+        </button>
       </div>
 
       <!-- 历史存档列表 -->
@@ -85,6 +92,29 @@
 
       <!-- 黑板区域 -->
       <div class="blackboard-area">
+        <!-- 返回主页按钮 -->
+        <button id="backToHomeBtn" class="back-home-btn" title="返回主页">
+          <span class="btn-icon">🏠</span>
+          <span class="btn-text">返回主页</span>
+        </button>
+        <!-- 发起考试按钮 -->
+        <button id="startExamBtn" class="exam-start-btn" title="发起期末考试">
+          <span class="btn-icon">📝</span>
+          <span class="btn-text">发起考试</span>
+        </button>
+        <!-- 考试成绩按钮 -->
+        <button id="examScoreBtn" class="exam-score-btn" title="查看考试成绩">
+          <span class="btn-icon">📊</span>
+          <span class="btn-text">考试成绩</span>
+        </button>
+        <!-- 考试倒计时条 -->
+        <div id="examTimerBar" class="exam-timer-bar hidden">
+          <div class="exam-timer-label">期末考试</div>
+          <div class="exam-timer-track">
+            <div class="exam-timer-fill" id="examTimerFill"></div>
+            <div class="exam-timer-text" id="examTimerText">30</div>
+          </div>
+        </div>
         <div class="blackboard">
           <div class="blackboard-frame">
             <div class="blackboard-surface">
@@ -102,33 +132,53 @@
                 <span class="btn-icon">🎒</span>
               </button>
             </div>
+            <!-- 笔筒道具 -->
+            <div id="penHolder" class="pen-holder" title="笔筒">
+              <div class="pen-holder-body">
+                <div class="pen pen-1">✏️</div>
+                <div class="pen pen-2">🖊️</div>
+                <div class="pen pen-3">🖊️</div>
+              </div>
+            </div>
           </div>
           <!-- 血条显示在原粉笔槽位置 -->
           <div class="hp-bar-container">
             <div class="hp-track">
               <div class="hp-fill" id="teacherHpFill" style="width: 100%;"></div>
               <div class="hp-segments">
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
-                <div class="hp-segment"></div><div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
+                <div class="hp-segment"></div>
               </div>
               <div class="hp-value" id="teacherHpValue">10000</div>
             </div>
           </div>
         </div>
-        
+
         <!-- 教师区域 -->
         <div class="teacher-area">
           <div class="teacher" id="teacher">
-            <img id="teacherImg" class="character-img teacher-img" src="assets/characters/teacher_standing.png" alt="老师">
+            <img id="teacherImg" class="character-img teacher-img" src="assets/characters/teacher_standing.png"
+              alt="老师">
           </div>
         </div>
       </div>
@@ -139,6 +189,7 @@
         <div class="desk-row">
           <div class="desk-unit">
             <div class="student boy" data-name="小明" data-gender="男" data-id="xm">
+              <div class="exam-emoji hidden">✏️</div>
               <div class="character-img-container student-img">
                 <img class="state-sitting active" src="assets/characters/xm_sitting.png" alt="小明 坐着">
                 <img class="state-raising" src="assets/characters/xm_raising.png" alt="小明 举手">
@@ -152,6 +203,7 @@
           </div>
           <div class="desk-unit">
             <div class="student girl" data-name="小红" data-gender="女" data-id="xh">
+              <div class="exam-emoji hidden">✏️</div>
               <div class="character-img-container student-img">
                 <img class="state-sitting active" src="assets/characters/xh_sitting.png" alt="小红 坐着">
                 <img class="state-raising" src="assets/characters/xh_raising.png" alt="小红 举手">
@@ -165,6 +217,7 @@
           </div>
           <div class="desk-unit">
             <div class="student girl" data-name="小丽" data-gender="女" data-id="xl">
+              <div class="exam-emoji hidden">✏️</div>
               <div class="character-img-container student-img">
                 <img class="state-sitting active" src="assets/characters/xl_sitting.png" alt="小丽 坐着">
                 <img class="state-raising" src="assets/characters/xl_raising.png" alt="小丽 举手">
@@ -182,6 +235,7 @@
         <div class="desk-row">
           <div class="desk-unit">
             <div class="student boy" data-name="小刚" data-gender="男" data-id="xg">
+              <div class="exam-emoji hidden">✏️</div>
               <div class="character-img-container student-img">
                 <img class="state-sitting active" src="assets/characters/xg_sitting.png" alt="小刚 坐着">
                 <img class="state-raising" src="assets/characters/xg_raising.png" alt="小刚 举手">
@@ -195,6 +249,7 @@
           </div>
           <div class="desk-unit">
             <div class="student boy" data-name="小强" data-gender="男" data-id="xq">
+              <div class="exam-emoji hidden">✏️</div>
               <div class="character-img-container student-img">
                 <img class="state-sitting active" src="assets/characters/xq_sitting.png" alt="小强 坐着">
                 <img class="state-raising" src="assets/characters/xq_raising.png" alt="小强 举手">
@@ -208,6 +263,7 @@
           </div>
           <div class="desk-unit">
             <div class="student girl" data-name="小芳" data-gender="女" data-id="xf">
+              <div class="exam-emoji hidden">✏️</div>
               <div class="character-img-container student-img">
                 <img class="state-sitting active" src="assets/characters/xf_sitting.png" alt="小芳 坐着">
                 <img class="state-raising" src="assets/characters/xf_raising.png" alt="小芳 举手">
@@ -259,7 +315,7 @@
       <div id="flashRedOverlay" class="flash-red-overlay"></div>
       <!-- 校长突击 -->
       <img id="principalHead" class="principal-head img-principal" src="principal.png" alt="Angry Principal">
-      
+
       <!-- 底部 UI 条：事件通知滚屏 -->
       <div class="bottom-bar event-log-bar">
         <div class="event-log-container" id="eventLogContainer">
