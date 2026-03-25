@@ -3621,7 +3621,7 @@ function showStudentScoreRanking() {
 const supabaseUrl = 'https://ogkderjuhbcewpuigsql.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9na2Rlcmp1aGJjZXdwdWlnc3FsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ0NTIzMTQsImV4cCI6MjA5MDAyODMxNH0.cruYgVyH9ClTjTEDCUWm2K6YZBnM7CFbmahuAZkELS0';
 
-let supabase = null;
+let supabaseClient = null;
 
 // --- 排行榜维度定义 ---
 const LEADERBOARD_TABS = [
@@ -3637,7 +3637,7 @@ const LEADERBOARD_TABS = [
  * 上传成绩到 Supabase
  */
 async function uploadScoreToCloud(btnEl) {
-  if (!supabase) {
+  if (!supabaseClient) {
     pushEventLog('❌ 数据库连接未就绪，请检查网络或刷新页面', 'negative');
     return;
   }
@@ -3693,7 +3693,7 @@ async function uploadScoreToCloud(btnEl) {
       { board: 'mood', teacher: teacherName, student: maxMood.name, score: maxMood.value }
     ];
 
-    const { error } = await supabase
+    const { error } = await supabaseClient
       .from('leaderboard')
       .insert(records);
 
@@ -3782,13 +3782,13 @@ async function fetchLeaderboard(boardKey) {
 
   container.innerHTML = '<div class="leaderboard-loading">⏳ 加载中...</div>';
 
-  if (!supabase) {
+  if (!supabaseClient) {
     container.innerHTML = '<div class="leaderboard-empty">❌ 数据库连接未就绪</div>';
     return;
   }
 
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('leaderboard')
       .select('*')
       .eq('board', boardKey)
@@ -3831,7 +3831,7 @@ async function fetchLeaderboard(boardKey) {
 // 在 DOMContentLoaded 中追加初始化
 document.addEventListener('DOMContentLoaded', () => {
   if (window.supabase) {
-    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+    supabaseClient = window.supabase.createClient(supabaseUrl, supabaseKey);
   }
   initLeaderboardBtn();
 });
