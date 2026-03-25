@@ -3725,10 +3725,14 @@ async function uploadScoreToCloud(btnEl) {
     const collection = cloudDb.collection('leaderboard');
 
     for (const record of records) {
-      await collection.add({
+      const res = await collection.add({
         ...record,
         timestamp: Date.now()
       });
+      console.log('上传单条返回:', res);
+      if (res.code) {
+        throw new Error(`[${res.code}] ${res.message}`);
+      }
     }
 
     btnEl.textContent = '✅ 已上传';
