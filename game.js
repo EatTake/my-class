@@ -2897,6 +2897,7 @@ function startExam() {
   examState.timeRemaining = EXAM_DURATION;
   examState.examResults = {
     birdBonus: 0,
+    classPenalty: 0,
     students: gameState.students.map((s, i) => ({
       index: i,
       name: s.name,
@@ -2905,6 +2906,10 @@ function startExam() {
       caught: false,
       noPen: false,
       helped: false,
+      slept: false,
+      wokenUp: false,
+      phoneRinging: false,
+      phoneConfiscated: false,
       finalScore: 0
     }))
   };
@@ -3021,8 +3026,8 @@ function hideExamModeUI() {
 function scheduleRandomEvent() {
   if (!examState.isActive) return;
 
-  const minDelay = 5000;
-  const maxDelay = 15000;
+  const minDelay = 2000;
+  const maxDelay = 4500;
   const delay = randomInt(minDelay, maxDelay);
 
   examState.eventTimer = setTimeout(() => {
@@ -3034,7 +3039,7 @@ function scheduleRandomEvent() {
 }
 
 function triggerRandomEvent() {
-  const events = ['cheat', 'bird', 'noPen'];
+  const events = ['cheat', 'bird', 'noPen', 'sleep', 'phone'];
   const event = randomPick(events);
 
   switch (event) {
@@ -3046,6 +3051,12 @@ function triggerRandomEvent() {
       break;
     case 'noPen':
       triggerNoPenEvent();
+      break;
+    case 'sleep':
+      triggerSleepEvent();
+      break;
+    case 'phone':
+      triggerPhoneEvent();
       break;
   }
 }
@@ -3243,11 +3254,132 @@ function handlePenHolderClick() {
   }
 }
 
+function triggerSleepEvent() {
+  const availableStudents = examState.examResults.students.filter(s => !s.slept && !s.wokenUp);
+  if (availableStudents.length === 0) return;
+
+  const student = randomPick(availableStudents);
+  examState.currentEvent = 'sleep';
+  examState.eventStudentIndex = student.index;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[student.index]) {
+    examEmojis[student.index].textContent = '💤';
+    examEmojis[student.index].classList.add('event-active');
+  }
+
+  pushEventLog(`💤 ${student.name}在考试中睡着了！快点击将其摇醒！`, 'negative');
+
+  examState.eventTimeout = setTimeout(() => {
+    if (examState.currentEvent === 'sleep' && examState.eventStudentIndex === student.index) {
+      handleSleepFailed(student.index);
+    }
+  }, EVENT_DURATION);
+}
+
+function handleSleepSuccess(studentIndex) {
+  if (examState.currentEvent !== 'sleep') return;
+
+  clearTimeout(examState.eventTimeout);
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.wokenUp = true;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  pushEventLog(`✅ 及时叫醒了${student.name}，避免了严重漏题！`, 'positive');
+}
+
+function handleSleepFailed(studentIndex) {
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.slept = true;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  pushEventLog(`❌ ${student.name}睡过了头！严重漏答，-15分！`, 'negative');
+}
+
+function triggerPhoneEvent() {
+  const availableStudents = examState.examResults.students.filter(s => !s.phoneRinging && !s.phoneConfiscated);
+  if (availableStudents.length === 0) return;
+
+  const student = randomPick(availableStudents);
+  examState.currentEvent = 'phone';
+  examState.eventStudentIndex = student.index;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[student.index]) {
+    examEmojis[student.index].textContent = '📱';
+    examEmojis[student.index].classList.add('event-active');
+  }
+
+  pushEventLog(`📱 ${student.name}的手机突然狂响！快没收！`, 'negative');
+
+  examState.eventTimeout = setTimeout(() => {
+    if (examState.currentEvent === 'phone' && examState.eventStudentIndex === student.index) {
+      handlePhoneFailed(student.index);
+    }
+  }, EVENT_DURATION);
+}
+
+function handlePhoneSuccess(studentIndex) {
+  if (examState.currentEvent !== 'phone') return;
+
+  clearTimeout(examState.eventTimeout);
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.phoneConfiscated = true;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  pushEventLog(`✅ 迅速没收了${student.name}的手机，维持了考场纪律！`, 'positive');
+}
+
+function handlePhoneFailed(studentIndex) {
+  examState.currentEvent = null;
+  examState.eventStudentIndex = null;
+
+  const student = examState.examResults.students[studentIndex];
+  student.phoneRinging = true;
+  examState.examResults.classPenalty += 3;
+
+  const examEmojis = document.querySelectorAll('.exam-emoji');
+  if (examEmojis[studentIndex]) {
+    examEmojis[studentIndex].textContent = '✏️';
+    examEmojis[studentIndex].classList.remove('event-active');
+  }
+
+  pushEventLog(`❌ 手机一直狂响！${student.name}-10分，全班连坐-3分！`, 'negative');
+}
+
 function handleStudentExamClick(studentIndex) {
   if (!examState.isActive) return;
 
   if (examState.currentEvent === 'cheat' && examState.eventStudentIndex === studentIndex) {
     handleCheatSuccess(studentIndex);
+  } else if (examState.currentEvent === 'sleep' && examState.eventStudentIndex === studentIndex) {
+    handleSleepSuccess(studentIndex);
+  } else if (examState.currentEvent === 'phone' && examState.eventStudentIndex === studentIndex) {
+    handlePhoneSuccess(studentIndex);
   }
 }
 
@@ -3307,8 +3439,17 @@ function calculateFinalScores() {
     let finalScore = baseScore + randomVariation;
 
     finalScore += examState.examResults.birdBonus;
+    finalScore -= examState.examResults.classPenalty;
 
     if (student.noPen) {
+      finalScore -= 10;
+    }
+
+    if (student.slept) {
+      finalScore -= 15;
+    }
+
+    if (student.phoneRinging) {
       finalScore -= 10;
     }
 
