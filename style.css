@@ -53,33 +53,32 @@ body {
   justify-content: center;
 }
 
+
 /* ============================================
-   开始界面
+   开始界面 - Apple Style
    ============================================ */
 #startScreen {
-  background: linear-gradient(135deg, #0f0c29 0%, #302b63 50%, #24243e 100%);
+  background: linear-gradient(180deg, #000000 0%, #0a0a1a 40%, #111128 100%);
   position: relative;
   overflow: hidden;
 }
 
-/* 背景动画粒子 */
 #startScreen::before {
   content: '';
   position: absolute;
-  width: 200%;
-  height: 200%;
-  top: -50%;
-  left: -50%;
-  background: radial-gradient(circle at 20% 50%, rgba(233, 69, 96, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, rgba(240, 192, 64, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 50% 80%, rgba(79, 195, 247, 0.08) 0%, transparent 50%);
-  animation: bgRotate 20s linear infinite;
+  width: 600px;
+  height: 600px;
+  top: -200px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: radial-gradient(circle, rgba(120, 80, 255, 0.12) 0%, transparent 70%);
+  filter: blur(80px);
+  pointer-events: none;
 }
 
-@keyframes bgRotate {
-  100% {
-    transform: rotate(360deg);
-  }
+#startScreen.active {
+  overflow-y: auto;
+  justify-content: flex-start;
 }
 
 .start-container {
@@ -88,469 +87,439 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
-  padding: 40px;
+  gap: 28px;
+  padding: 50px 20px 40px;
+  width: 100%;
+  max-width: 480px;
+}
+
+/* --- 标题区域 --- */
+.hero-section {
+  text-align: center;
+  position: relative;
+  margin-bottom: 4px;
 }
 
 .title-glow {
   position: absolute;
-  width: 300px;
-  height: 300px;
+  width: 240px;
+  height: 240px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(233, 69, 96, 0.15) 0%, transparent 70%);
-  top: -80px;
-  filter: blur(40px);
-  animation: pulse 3s ease-in-out infinite;
-}
-
-@keyframes pulse {
-
-  0%,
-  100% {
-    transform: scale(1);
-    opacity: 0.6;
-  }
-
-  50% {
-    transform: scale(1.2);
-    opacity: 1;
-  }
+  background: radial-gradient(circle, rgba(120, 80, 255, 0.2) 0%, transparent 70%);
+  top: -60px;
+  left: 50%;
+  transform: translateX(-50%);
+  filter: blur(50px);
+  pointer-events: none;
 }
 
 .game-title {
   font-family: var(--font-title);
-  font-size: 72px;
-  background: linear-gradient(135deg, #f0c040, #e94560, #4FC3F7, #f0c040);
+  font-size: 76px;
+  font-weight: 700;
+  background: linear-gradient(135deg, #a78bfa, #818cf8, #60a5fa, #a78bfa);
   background-size: 300% 300%;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  animation: shimmer 4s ease-in-out infinite;
-  text-shadow: none;
-  filter: drop-shadow(0 4px 20px rgba(233, 69, 96, 0.3));
-  letter-spacing: 4px;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: 0% 50%;
-  }
-
-  50% {
-    background-position: 100% 50%;
-  }
-
-  100% {
-    background-position: 0% 50%;
-  }
+  animation: shimmer 6s ease-in-out infinite;
+  letter-spacing: 2px;
+  line-height: 1;
+  margin-bottom: 8px;
 }
 
 .subtitle {
   font-family: var(--font-title);
-  font-size: 22px;
-  color: rgba(255, 255, 255, 0.6);
-  letter-spacing: 8px;
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 12px;
+  font-weight: 400;
 }
 
-.input-group {
+@keyframes shimmer {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* --- 角色创建卡片 --- */
+.creation-card {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 24px;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* --- Step 渐进展开 --- */
+.step {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.5s cubic-bezier(0.4, 0, 0.2, 1),
+              opacity 0.4s ease,
+              margin 0.4s ease;
+  margin-top: 0;
+}
+
+.step.active {
+  max-height: 600px;
+  opacity: 1;
+  margin-top: 0;
+}
+
+.step.active + .step.active {
+  margin-top: 20px;
+}
+
+.step-1.active {
+  max-height: 300px;
+}
+
+.step-header {
   display: flex;
   align-items: center;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.step-number {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-body);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.step-title {
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: 0.5px;
+}
+
+.step-body {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 16px;
-  padding: 12px 20px;
-  backdrop-filter: blur(20px);
+}
+
+/* --- 输入框 --- */
+#startScreen .input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 0 16px;
   transition: all 0.3s ease;
-  margin-top: 10px;
 }
 
-.input-group:focus-within {
-  border-color: var(--color-accent);
-  box-shadow: 0 0 30px rgba(233, 69, 96, 0.15);
-  background: rgba(255, 255, 255, 0.1);
+#startScreen .input-group:focus-within {
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.12);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.input-group label {
-  font-size: 28px;
+#startScreen .input-group label {
+  font-size: 20px;
+  flex-shrink: 0;
+  display: none;
 }
 
-.input-group input {
+#startScreen .input-group input {
   background: transparent;
   border: none;
   outline: none;
   color: #fff;
-  font-size: 18px;
+  font-size: 16px;
   font-family: var(--font-body);
-  width: 240px;
-  caret-color: var(--color-accent);
+  width: 100%;
+  padding: 14px 0;
+  caret-color: #a78bfa;
 }
 
-.input-group input::placeholder {
-  color: rgba(255, 255, 255, 0.35);
+#startScreen .input-group input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
 }
 
-.start-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 14px 40px;
-  font-size: 20px;
-  font-family: var(--font-title);
-  border: none;
-  border-radius: 50px;
-  cursor: pointer;
-  background: linear-gradient(135deg, #e94560, #c0392b);
-  color: #fff;
-  box-shadow: 0 8px 30px rgba(233, 69, 96, 0.35);
-  transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  margin-top: 8px;
+#startScreen .input-group.error {
+  border-color: rgba(239, 68, 68, 0.5);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
 }
 
-.start-btn::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(transparent, rgba(255, 255, 255, 0.1), transparent);
-  transform: rotate(45deg);
-  transition: all 0.5s ease;
-}
-
-.start-btn:hover:not(:disabled)::after {
-  transform: rotate(45deg) translateY(-100%);
-}
-
-.start-btn:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(233, 69, 96, 0.5);
-}
-
-.start-btn:active:not(:disabled) {
-  transform: translateY(0) scale(0.98);
-}
-
-.start-btn:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-}
-
-/* --- 角色创建区 --- */
-.character-creation {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 15px;
-  margin-bottom: 20px;
-}
-
-.error-message {
-  color: #ff6b6b;
-  font-size: 14px;
-  min-height: 20px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.input-group.error {
-  border-color: #ff6b6b;
-  box-shadow: 0 0 20px rgba(255, 107, 107, 0.3);
+#startScreen .error-message {
+  color: #f87171;
+  font-size: 13px;
+  min-height: 18px;
+  text-align: center;
+  font-family: var(--font-body);
+  padding: 4px 0;
 }
 
 /* --- 性别选择 --- */
 .gender-select {
   display: flex;
-  gap: 15px;
-  margin-top: 5px;
+  gap: 10px;
 }
 
 .gender-option {
+  flex: 1;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 8px;
-  padding: 10px 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
+  gap: 4px;
+  padding: 12px 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.25s ease;
 }
 
-.gender-option input {
-  display: none;
-}
-
-.gender-option .gender-icon {
-  font-size: 24px;
-}
+.gender-option input { display: none; }
+.gender-option .gender-icon { font-size: 28px; }
 
 .gender-option .gender-text {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
   font-family: var(--font-body);
+  font-weight: 500;
 }
 
 .gender-option:hover {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
 }
 
 .gender-option.selected {
-  background: rgba(233, 69, 96, 0.2);
-  border-color: var(--color-accent);
+  background: rgba(124, 58, 237, 0.15);
+  border-color: rgba(124, 58, 237, 0.4);
 }
 
 .gender-option.selected .gender-text {
-  color: #fff;
+  color: #c4b5fd;
 }
 
-/* --- 新建游戏按钮 --- */
-.new-game-btn {
+/* --- 生肖/星座选择器 --- */
+.selector-section { width: 100%; }
+.selector-label { display: none; }
+
+.zodiac-select,
+.star-sign-select {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+
+.zodiac-option,
+.star-option {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  padding: 16px 50px;
-  font-size: 20px;
-  font-family: var(--font-title);
-  border: none;
-  border-radius: 50px;
+  gap: 3px;
+  padding: 10px 4px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 12px;
   cursor: pointer;
-  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  transition: all 0.25s ease;
+}
+
+.zodiac-option input, .star-option input { display: none; }
+.zodiac-icon, .star-icon { font-size: 24px; line-height: 1; }
+
+.zodiac-text, .star-text {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.35);
+  font-family: var(--font-body);
+}
+
+.zodiac-option:hover, .star-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+.zodiac-option.selected {
+  background: rgba(251, 146, 60, 0.15);
+  border-color: rgba(251, 146, 60, 0.4);
+}
+.zodiac-option.selected .zodiac-text { color: #fdba74; }
+
+.star-option.selected {
+  background: rgba(167, 139, 250, 0.15);
+  border-color: rgba(167, 139, 250, 0.4);
+}
+.star-option.selected .star-text { color: #c4b5fd; }
+
+/* --- 操作按钮组 --- */
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 16px 24px;
+  font-size: 17px;
+  font-family: var(--font-body);
+  font-weight: 600;
+  border: none;
+  border-radius: 14px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
   color: #fff;
-  box-shadow: 0 8px 30px rgba(76, 175, 80, 0.4);
+  box-shadow: 0 6px 30px rgba(124, 58, 237, 0.35);
   transition: all 0.3s ease;
-  position: relative;
-  overflow: hidden;
-  margin-top: 10px;
+  letter-spacing: 1px;
 }
 
-.new-game-btn::after {
-  content: '';
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(transparent, rgba(255, 255, 255, 0.15), transparent);
-  transform: rotate(45deg);
-  transition: all 0.5s ease;
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(124, 58, 237, 0.5);
+}
+.btn-primary:active { transform: translateY(0) scale(0.98); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.btn-row { display: flex; gap: 10px; }
+
+.btn-secondary {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-family: var(--font-body);
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.6);
+  transition: all 0.25s ease;
 }
 
-.new-game-btn:hover::after {
-  transform: rotate(45deg) translateY(-100%);
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
 }
-
-.new-game-btn:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 12px 40px rgba(76, 175, 80, 0.5);
-}
-
-.new-game-btn:active {
-  transform: translateY(0) scale(0.98);
-}
+.btn-secondary:active { transform: scale(0.98); }
 
 /* --- 存档区域 --- */
-.saves-section {
-  width: 100%;
-  max-width: 400px;
-  margin-top: 25px;
-  padding-top: 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
+.saves-section { width: 100%; margin-top: 4px; }
 
 .saves-title {
-  font-family: var(--font-title);
-  font-size: 16px;
-  color: rgba(255, 255, 255, 0.6);
-  margin-bottom: 15px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.35);
+  margin-bottom: 12px;
   text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
 
 .saves-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  max-height: 200px;
+  gap: 8px;
+  max-height: 180px;
   overflow-y: auto;
 }
 
-.saves-list::-webkit-scrollbar {
-  width: 6px;
-}
+.saves-list::-webkit-scrollbar { width: 4px; }
+.saves-list::-webkit-scrollbar-track { background: transparent; }
+.saves-list::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.15); border-radius: 2px; }
 
-.saves-list::-webkit-scrollbar-track {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 3px;
-}
-
-.saves-list::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 3px;
-}
-
-/* --- 存档卡片 --- */
 .save-card {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px 15px;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 12px;
-  transition: all 0.3s ease;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 14px;
+  transition: all 0.25s ease;
 }
 
 .save-card:hover {
-  background: rgba(255, 255, 255, 0.12);
-  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.12);
 }
 
 .save-avatar {
-  width: 40px;
-  height: 40px;
-  background: linear-gradient(135deg, var(--color-accent), #c0392b);
+  width: 38px; height: 38px;
+  background: linear-gradient(135deg, #7c3aed, #6366f1);
   border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; flex-shrink: 0;
 }
 
-.save-info {
-  flex: 1;
-}
+.save-info { flex: 1; }
 
 .save-name {
-  font-family: var(--font-title);
-  font-size: 16px;
-  color: #fff;
+  font-family: var(--font-body);
+  font-size: 15px; font-weight: 600; color: #fff;
 }
 
 .save-salary {
   font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(255, 255, 255, 0.4);
   margin-top: 2px;
 }
 
-.save-actions {
-  display: flex;
-  gap: 8px;
-}
+.save-actions { display: flex; gap: 6px; }
 
 .save-btn {
-  padding: 6px 12px;
-  font-size: 12px;
-  font-family: var(--font-body);
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  padding: 6px 14px; font-size: 12px;
+  font-family: var(--font-body); font-weight: 500;
+  border: none; border-radius: 8px;
+  cursor: pointer; transition: all 0.2s ease;
 }
 
 .save-btn.load-btn {
-  background: linear-gradient(135deg, #2196F3, #1976D2);
-  color: #fff;
+  background: rgba(124, 58, 237, 0.2);
+  color: #a78bfa;
+  border: 1px solid rgba(124, 58, 237, 0.3);
 }
-
-.save-btn.load-btn:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.4);
-}
+.save-btn.load-btn:hover { background: rgba(124, 58, 237, 0.3); }
 
 .save-btn.delete-btn {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.6);
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.4);
 }
-
-.save-btn.delete-btn:hover {
-  background: rgba(244, 67, 54, 0.3);
-  color: #ff6b6b;
-}
+.save-btn.delete-btn:hover { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 
 .no-saves-tip {
   text-align: center;
-  color: rgba(255, 255, 255, 0.3);
-  font-size: 14px;
-  padding: 20px;
+  color: rgba(255, 255, 255, 0.2);
+  font-size: 13px; padding: 16px;
+  font-family: var(--font-body);
 }
+.no-saves-tip.hidden { display: none; }
 
-.no-saves-tip.hidden {
-  display: none;
-}
-
-.btn-icon {
-  font-size: 22px;
-  animation: ring 2s ease-in-out infinite;
-}
-
-@keyframes ring {
-
-  0%,
-  100% {
-    transform: rotate(0deg);
-  }
-
-  10% {
-    transform: rotate(15deg);
-  }
-
-  20% {
-    transform: rotate(-15deg);
-  }
-
-  30% {
-    transform: rotate(10deg);
-  }
-
-  40% {
-    transform: rotate(-10deg);
-  }
-
-  50% {
-    transform: rotate(0deg);
-  }
-}
-
-/* 浮动装饰元素 */
-.decorations {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-
-.float-item {
-  position: absolute;
-  font-size: 32px;
-  left: calc(50% + var(--x));
-  top: calc(50% + var(--y));
-  animation: float 4s ease-in-out var(--delay) infinite;
-  opacity: 0.5;
-}
-
-@keyframes float {
-
-  0%,
-  100% {
-    transform: translateY(0) rotate(0deg);
-  }
-
-  50% {
-    transform: translateY(-20px) rotate(10deg);
-  }
-}
+/* 隐藏旧元素 */
+.decorations, .float-item, .character-creation,
+.start-btn, .new-game-btn, .leaderboard-btn,
+.recover-teacher-btn { display: none; }
+.btn-icon { display: none; }
 
 
-/* ============================================
-   游戏主界面 - 教室场景
-   ============================================ */
-#gameScreen {
-  background: #c8b898;
-  justify-content: flex-start;
-}
 
 #gameScreen.active {
   animation: fadeInUp 0.6s ease;
@@ -4442,3 +4411,151 @@ body {
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(233, 69, 96, 0.5);
 }
+
+/* ============================================
+   找回老师面板样式 (Recover Teacher Dialog)
+   ============================================ */
+.recover-panel {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+  font-family: var(--font-primary, 'Noto Sans SC', sans-serif);
+}
+
+.recover-content {
+  background: var(--card-bg, rgba(20, 20, 35, 0.85));
+  backdrop-filter: blur(25px);
+  -webkit-backdrop-filter: blur(25px);
+  border: 1px solid var(--border-color, rgba(255, 255, 255, 0.15));
+  padding: 30px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 450px;
+  color: #fff;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.recover-header h2 {
+  margin: 0 0 20px 0;
+  text-align: center;
+  font-size: 24px;
+  color: #fff;
+}
+
+.recover-body .input-group {
+  display: flex;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+}
+.recover-body .input-group label {
+  font-size: 20px;
+  margin-right: 12px;
+}
+.recover-body .input-group input {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  font-size: 16px;
+  width: 100%;
+}
+
+.selector-section {
+  margin-bottom: 20px;
+}
+.selector-label {
+  font-size: 14px;
+  color: #aaa;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+/* 复用现有的生肖/星座 grid 样式 */
+.recover-body .zodiac-select,
+.recover-body .star-sign-select {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+}
+.recover-body .zodiac-option,
+.recover-body .star-option {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 8px;
+  padding: 8px 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.recover-body .zodiac-option:hover,
+.recover-body .star-option:hover {
+  background: rgba(255,255,255,0.1);
+}
+.recover-body .zodiac-option.selected,
+.recover-body .star-option.selected {
+  background: rgba(0, 122, 255, 0.2);
+  border-color: rgb(0, 122, 255);
+}
+
+.recover-footer {
+  margin-top: 30px;
+  display: flex;
+  gap: 15px;
+}
+
+.recover-confirm-btn, .recover-cancel-btn {
+  flex: 1;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.recover-confirm-btn {
+  background: var(--primary-color, rgb(0, 122, 255));
+  color: #fff;
+}
+.recover-confirm-btn:hover {
+  background: rgba(0, 122, 255, 0.8);
+  transform: translateY(-2px);
+}
+.recover-confirm-btn:disabled {
+  background: #555;
+  color: #888;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.recover-cancel-btn {
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+}
+.recover-cancel-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.recover-status {
+  text-align: center;
+  font-size: 14px;
+  min-height: 20px;
+}
+.recover-status.error { color: #ff453a; }
+.recover-status.success { color: #32d74b; }
+

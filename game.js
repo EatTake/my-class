@@ -389,6 +389,8 @@ const principalHead = document.getElementById('principalHead');
 const gameState = {
   teacherName: '',
   teacherGender: '男',
+  zodiac: '',              // 生肖（云端身份验证用）
+  starSign: '',            // 星座（云端身份验证用）
   salary: 10000,
   students: generateStudents(),
   activeTooltipStudentId: null,
@@ -1824,14 +1826,31 @@ function initStartScreen() {
   // 初始化存档列表
   loadSavesList();
 
-  // 性别选择交互
+  const step2 = document.getElementById('step2');
+  const step3 = document.getElementById('step3');
+
+  // 性别选择交互 → 选择后展开 Step 2
   const genderOptions = document.querySelectorAll('.gender-option');
   genderOptions.forEach(option => {
     option.addEventListener('click', () => {
       genderOptions.forEach(o => o.classList.remove('selected'));
       option.classList.add('selected');
+      // 展开 Step 2（生肖选择）
+      if (step2 && !step2.classList.contains('active')) {
+        step2.classList.add('active');
+      }
     });
   });
+
+  // 生肖选择交互 → 选择后展开 Step 3
+  initSelectorInteraction('.zodiac-option', () => {
+    if (step3 && !step3.classList.contains('active')) {
+      step3.classList.add('active');
+    }
+  });
+
+  // 星座选择交互
+  initSelectorInteraction('.star-option');
 
   // 名字输入验证
   teacherNameInput.addEventListener('input', () => {
@@ -1846,6 +1865,12 @@ function initStartScreen() {
     newGameBtn.addEventListener('click', handleNewGame);
   }
 
+  // 找回老师按钮
+  const recoverBtn = document.getElementById('recoverTeacherBtn');
+  if (recoverBtn) {
+    recoverBtn.addEventListener('click', showRecoverTeacherPanel);
+  }
+
   // 回车键快捷开始
   teacherNameInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') handleNewGame();
@@ -1854,6 +1879,20 @@ function initStartScreen() {
   // 绑定评判按钮
   btnJudgeCorrect.addEventListener('click', () => handleJudgment(true));
   btnJudgeWrong.addEventListener('click', () => handleJudgment(false));
+}
+
+/**
+ * 通用选择器交互：点击高亮，同组互斥，可选回调
+ */
+function initSelectorInteraction(selector, onSelect) {
+  const options = document.querySelectorAll(selector);
+  options.forEach(option => {
+    option.addEventListener('click', () => {
+      options.forEach(o => o.classList.remove('selected'));
+      option.classList.add('selected');
+      if (typeof onSelect === 'function') onSelect(option);
+    });
+  });
 }
 
 // ============================================
@@ -1942,9 +1981,11 @@ function createSaveCard(save) {
   return card;
 }
 
-function handleNewGame() {
+async function handleNewGame() {
   const name = teacherNameInput.value.trim();
   const gender = document.querySelector('input[name="teacherGender"]:checked')?.value || '男';
+  const zodiac = document.querySelector('input[name="teacherZodiac"]:checked')?.value || '';
+  const starSign = document.querySelector('input[name="teacherStarSign"]:checked')?.value || '';
 
   if (!name) {
     teacherNameInput.parentElement.classList.add('error');
@@ -1953,15 +1994,49 @@ function handleNewGame() {
     return;
   }
 
+  if (!zodiac) {
+    nameError.textContent = '请选择你的生肖';
+    return;
+  }
+
+  if (!starSign) {
+    nameError.textContent = '请选择你的星座';
+    return;
+  }
+
+  // 检查云端是否已存在相同组合
+  if (supabaseClient) {
+    nameError.textContent = '';
+    newGameBtn.disabled = true;
+    newGameBtn.querySelector('.btn-text').textContent = '检查中...';
+    try {
+      const existingSave = await checkCloudSaveExists(name, zodiac, starSign);
+      if (existingSave) {
+        newGameBtn.disabled = false;
+        newGameBtn.querySelector('.btn-text').textContent = '新建游戏';
+        // 弹出冲突对话框
+        showCloudConflictDialog(name, zodiac, starSign, existingSave);
+        return;
+      }
+    } catch (err) {
+      console.error('云端查重失败:', err);
+      // 查重失败不阻塞，继续创建
+    }
+    newGameBtn.disabled = false;
+    newGameBtn.querySelector('.btn-text').textContent = '新建游戏';
+  }
+
   // 初始化游戏数据
   gameState.teacherName = name;
   gameState.teacherGender = gender;
+  gameState.zodiac = zodiac;
+  gameState.starSign = starSign;
   gameState.salary = 10000;
   gameState.questionCount = 0;
   gameState.completedQuestionCount = 0;
   gameState.students = generateStudents();
 
-  // 保存到 localStorage
+  // 保存到 localStorage + 云端
   saveGame();
 
   // 进入游戏
@@ -1973,6 +2048,8 @@ function saveGame() {
   const saveData = {
     teacherName: gameState.teacherName,
     teacherGender: gameState.teacherGender || '男',
+    zodiac: gameState.zodiac || '',
+    starSign: gameState.starSign || '',
     salary: gameState.salary,
     students: gameState.students,
     questionCount: gameState.questionCount,
@@ -1982,27 +2059,40 @@ function saveGame() {
     timestamp: Date.now()
   };
   localStorage.setItem(saveKey, JSON.stringify(saveData));
+
+  // 静默同步到云端（仅当有生肖和星座标识时）
+  if (gameState.zodiac && gameState.starSign) {
+    syncToCloud(saveData);
+  }
 }
 
 function handleLoadSave(key) {
   try {
     const data = JSON.parse(localStorage.getItem(key));
     if (data) {
-      gameState.teacherName = data.teacherName;
-      gameState.teacherGender = data.teacherGender || '男';
-      gameState.salary = data.salary !== undefined ? data.salary : 10000;
-      gameState.students = data.students || generateStudents();
-      gameState.questionCount = data.questionCount || 0;
-      gameState.completedQuestionCount = data.completedQuestionCount || 0;
-      gameState.inventory = data.inventory || { megaphone: 0, ruler: 0, homework: 0, flower: 0 };
-      gameState.examHistory = data.examHistory || [];  // BUG-2 修复：恢复考试历史
-
+      restoreGameStateFromData(data);
       enterGame();
     }
   } catch (e) {
     console.error('读取存档失败:', e);
     alert('存档数据损坏，无法读取');
   }
+}
+
+/**
+ * 从存档数据恢复 gameState（本地存档和云端存档共用）
+ */
+function restoreGameStateFromData(data) {
+  gameState.teacherName = data.teacherName;
+  gameState.teacherGender = data.teacherGender || '男';
+  gameState.zodiac = data.zodiac || '';
+  gameState.starSign = data.starSign || '';
+  gameState.salary = data.salary !== undefined ? data.salary : 10000;
+  gameState.students = data.students || generateStudents();
+  gameState.questionCount = data.questionCount || 0;
+  gameState.completedQuestionCount = data.completedQuestionCount || 0;
+  gameState.inventory = data.inventory || { megaphone: 0, ruler: 0, homework: 0, flower: 0 };
+  gameState.examHistory = data.examHistory || [];  // BUG-2 修复：恢复考试历史
 }
 
 function handleDeleteSave(key, name) {
@@ -3766,6 +3856,270 @@ function showStudentScoreRanking() {
     if (e.target === panel) {
       panel.remove();
     }
+  });
+}
+
+// ============================================
+// 云端存档系统
+// ============================================
+
+/**
+ * 静默同步存档到 Supabase cloud_saves 表
+ * 失败不影响游戏，仅 console 输出
+ */
+async function syncToCloud(saveData) {
+  if (!supabaseClient) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('cloud_saves')
+      .upsert({
+        teacher: saveData.teacherName,
+        zodiac: saveData.zodiac,
+        star_sign: saveData.starSign,
+        save_data: saveData,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'teacher,zodiac,star_sign' });
+
+    if (error) throw error;
+    console.log('☁️ 云端存档同步成功');
+  } catch (err) {
+    console.error('☁️ 云端存档同步失败:', err);
+  }
+}
+
+/**
+ * 检查云端是否已存在该组合的存档
+ * @returns {Object|null} 存在则返回存档数据，否则 null
+ */
+async function checkCloudSaveExists(name, zodiac, starSign) {
+  if (!supabaseClient) return null;
+
+  const { data, error } = await supabaseClient
+    .from('cloud_saves')
+    .select('save_data')
+    .eq('teacher', name)
+    .eq('zodiac', zodiac)
+    .eq('star_sign', starSign)
+    .single();
+
+  if (error && error.code !== 'PGRST116') throw error; // PGRST116 = no rows
+  return data ? data.save_data : null;
+}
+
+/**
+ * 从云端下载存档
+ * @returns {Object|null} 存档数据
+ */
+async function downloadCloudSave(name, zodiac, starSign) {
+  return await checkCloudSaveExists(name, zodiac, starSign);
+}
+
+/**
+ * 显示云端存档冲突对话框
+ * "已有此存档，是否读取？" → 读取 or 换个组合
+ */
+function showCloudConflictDialog(name, zodiac, starSign, cloudSaveData) {
+  const existing = document.getElementById('cloudConflictDialog');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'cloudConflictDialog';
+  overlay.className = 'cloud-conflict-overlay';
+
+  overlay.innerHTML = `
+    <div class="cloud-conflict-box">
+      <div class="cloud-conflict-icon">☁️</div>
+      <h3 class="cloud-conflict-title">发现已有存档</h3>
+      <p class="cloud-conflict-message">
+        「${name}」老师（${zodiac}·${starSign}）<br>
+        已有云端存档，是否读取该存档继续游戏？
+      </p>
+      <div class="cloud-conflict-buttons">
+        <button class="cloud-conflict-btn load-btn" id="conflictLoadBtn">✅ 读取存档</button>
+        <button class="cloud-conflict-btn change-btn" id="conflictChangeBtn">🔄 换个组合</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('conflictLoadBtn').addEventListener('click', () => {
+    overlay.remove();
+    // 用云端存档恢复并进入游戏
+    restoreGameStateFromData(cloudSaveData);
+    // 同时保存到本地
+    const saveKey = `myclass_save_${cloudSaveData.teacherName}`;
+    localStorage.setItem(saveKey, JSON.stringify(cloudSaveData));
+    enterGame();
+  });
+
+  document.getElementById('conflictChangeBtn').addEventListener('click', () => {
+    overlay.remove();
+    nameError.textContent = '请换一个名字、生肖或星座';
+  });
+
+  // 点击背景关闭
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
+/**
+ * 【找回老师】弹窗面板
+ * 动态生成包含名字输入 + 生肖选择 + 星座选择的全屏面板
+ */
+function showRecoverTeacherPanel() {
+  const existing = document.getElementById('recoverPanel');
+  if (existing) existing.remove();
+
+  // 生肖数据
+  const zodiacs = [
+    { value: '鼠', icon: '🐭' }, { value: '牛', icon: '🐮' }, { value: '虎', icon: '🐯' },
+    { value: '兔', icon: '🐰' }, { value: '龙', icon: '🐲' }, { value: '蛇', icon: '🐍' },
+    { value: '马', icon: '🐴' }, { value: '羊', icon: '🐑' }, { value: '猴', icon: '🐵' },
+    { value: '鸡', icon: '🐔' }, { value: '狗', icon: '🐶' }, { value: '猪', icon: '🐷' }
+  ];
+
+  // 星座数据
+  const starSigns = [
+    { value: '白羊座', icon: '♈', label: '白羊' }, { value: '金牛座', icon: '♉', label: '金牛' },
+    { value: '双子座', icon: '♊', label: '双子' }, { value: '巨蟹座', icon: '♋', label: '巨蟹' },
+    { value: '狮子座', icon: '♌', label: '狮子' }, { value: '处女座', icon: '♍', label: '处女' },
+    { value: '天秤座', icon: '♎', label: '天秤' }, { value: '天蝎座', icon: '♏', label: '天蝎' },
+    { value: '射手座', icon: '♐', label: '射手' }, { value: '摩羯座', icon: '♑', label: '摩羯' },
+    { value: '水瓶座', icon: '♒', label: '水瓶' }, { value: '双鱼座', icon: '♓', label: '双鱼' }
+  ];
+
+  const zodiacHtml = zodiacs.map(z =>
+    `<label class="zodiac-option" data-value="${z.value}"><span class="zodiac-icon">${z.icon}</span><span class="zodiac-text">${z.value}</span></label>`
+  ).join('');
+
+  const starHtml = starSigns.map(s =>
+    `<label class="star-option" data-value="${s.value}"><span class="star-icon">${s.icon}</span><span class="star-text">${s.label}</span></label>`
+  ).join('');
+
+  const panel = document.createElement('div');
+  panel.id = 'recoverPanel';
+  panel.className = 'recover-panel';
+
+  panel.innerHTML = `
+    <div class="recover-content">
+      <div class="recover-header">
+        <h2>🔍 找回老师</h2>
+      </div>
+      <div class="recover-body">
+        <div class="input-group">
+          <label>👨‍🏫</label>
+          <input type="text" id="recoverNameInput" placeholder="输入老师的名字" maxlength="10" autocomplete="off">
+        </div>
+        <div class="selector-section">
+          <div class="selector-label">🐾 选择生肖</div>
+          <div class="zodiac-select" id="recoverZodiacSelect">${zodiacHtml}</div>
+        </div>
+        <div class="selector-section">
+          <div class="selector-label">⭐ 选择星座</div>
+          <div class="star-sign-select" id="recoverStarSignSelect">${starHtml}</div>
+        </div>
+        <div class="recover-status" id="recoverStatus"></div>
+      </div>
+      <div class="recover-footer">
+        <button class="recover-confirm-btn" id="recoverConfirmBtn">🔍 查找并恢复</button>
+        <button class="recover-cancel-btn" id="recoverCancelBtn">取消</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(panel);
+
+  // 弹窗内的生肖/星座选择交互
+  const zodiacOptions = panel.querySelectorAll('#recoverZodiacSelect .zodiac-option');
+  zodiacOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+      zodiacOptions.forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+    });
+  });
+
+  const starOptions = panel.querySelectorAll('#recoverStarSignSelect .star-option');
+  starOptions.forEach(opt => {
+    opt.addEventListener('click', () => {
+      starOptions.forEach(o => o.classList.remove('selected'));
+      opt.classList.add('selected');
+    });
+  });
+
+  // 确认按钮
+  document.getElementById('recoverConfirmBtn').addEventListener('click', async () => {
+    const nameInput = document.getElementById('recoverNameInput');
+    const statusEl = document.getElementById('recoverStatus');
+    const confirmBtn = document.getElementById('recoverConfirmBtn');
+    const name = nameInput.value.trim();
+
+    const selectedZodiac = panel.querySelector('#recoverZodiacSelect .zodiac-option.selected');
+    const selectedStar = panel.querySelector('#recoverStarSignSelect .star-option.selected');
+
+    if (!name) {
+      statusEl.textContent = '请输入老师的名字';
+      statusEl.className = 'recover-status error';
+      return;
+    }
+    if (!selectedZodiac) {
+      statusEl.textContent = '请选择生肖';
+      statusEl.className = 'recover-status error';
+      return;
+    }
+    if (!selectedStar) {
+      statusEl.textContent = '请选择星座';
+      statusEl.className = 'recover-status error';
+      return;
+    }
+
+    const zodiac = selectedZodiac.dataset.value;
+    const starSign = selectedStar.dataset.value;
+
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = '⏳ 查找中...';
+    statusEl.textContent = '';
+
+    try {
+      const cloudData = await downloadCloudSave(name, zodiac, starSign);
+
+      if (cloudData) {
+        statusEl.textContent = '✅ 找到存档，正在恢复...';
+        statusEl.className = 'recover-status success';
+
+        setTimeout(() => {
+          panel.remove();
+          // 恢复存档
+          restoreGameStateFromData(cloudData);
+          // 保存到本地
+          const saveKey = `myclass_save_${cloudData.teacherName}`;
+          localStorage.setItem(saveKey, JSON.stringify(cloudData));
+          loadSavesList(); // 刷新存档列表
+          enterGame();
+        }, 800);
+      } else {
+        statusEl.textContent = '❌ 未找到存档，请检查名字、生肖和星座是否正确';
+        statusEl.className = 'recover-status error';
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = '🔍 查找并恢复';
+      }
+    } catch (err) {
+      console.error('找回老师失败:', err);
+      statusEl.textContent = '❌ 网络错误，请稍后重试';
+      statusEl.className = 'recover-status error';
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = '🔍 查找并恢复';
+    }
+  });
+
+  // 取消按钮
+  document.getElementById('recoverCancelBtn').addEventListener('click', () => panel.remove());
+
+  // 点击背景关闭
+  panel.addEventListener('click', (e) => {
+    if (e.target === panel) panel.remove();
   });
 }
 

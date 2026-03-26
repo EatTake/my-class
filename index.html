@@ -19,66 +19,124 @@
   <!-- ==================== 开始界面 ==================== -->
   <div id="startScreen" class="screen active">
     <div class="start-container">
-      <div class="title-glow"></div>
-      <h1 class="game-title">My Class</h1>
-      <p class="subtitle">🏫 我的课堂 🏫</p>
 
-      <!-- 角色创建区 -->
-      <div class="character-creation">
-        <div class="input-group">
-          <label for="teacherName">👨‍🏫</label>
-          <input type="text" id="teacherName" placeholder="请输入老师的名字" maxlength="10" autocomplete="off">
+      <!-- 标题区域 -->
+      <div class="hero-section">
+        <div class="title-glow"></div>
+        <h1 class="game-title">My Class</h1>
+        <p class="subtitle">我的课堂</p>
+      </div>
+
+      <!-- 角色创建卡片 -->
+      <div class="creation-card">
+
+        <!-- Step 1: 名字 + 性别 （始终可见） -->
+        <div class="step step-1 active" id="step1">
+          <div class="step-header">
+            <span class="step-number">1</span>
+            <span class="step-title">创建你的老师</span>
+          </div>
+          <div class="step-body">
+            <div class="input-group">
+              <input type="text" id="teacherName" placeholder="输入老师的名字" maxlength="10" autocomplete="off">
+            </div>
+            <div class="gender-select">
+              <label class="gender-option selected">
+                <input type="radio" name="teacherGender" value="男" checked>
+                <span class="gender-icon">👨</span>
+                <span class="gender-text">男老师</span>
+              </label>
+              <label class="gender-option">
+                <input type="radio" name="teacherGender" value="女">
+                <span class="gender-icon">👩</span>
+                <span class="gender-text">女老师</span>
+              </label>
+              <label class="gender-option">
+                <input type="radio" name="teacherGender" value="青鸾">
+                <span class="gender-icon">🦚</span>
+                <span class="gender-text">青鸾</span>
+              </label>
+            </div>
+          </div>
         </div>
+
+        <!-- Step 2: 生肖 （选择性别后展开） -->
+        <div class="step step-2" id="step2">
+          <div class="step-header">
+            <span class="step-number">2</span>
+            <span class="step-title">选择你的生肖</span>
+          </div>
+          <div class="step-body">
+            <div class="zodiac-select" id="zodiacSelect">
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="鼠"><span class="zodiac-icon">🐭</span><span class="zodiac-text">鼠</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="牛"><span class="zodiac-icon">🐮</span><span class="zodiac-text">牛</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="虎"><span class="zodiac-icon">🐯</span><span class="zodiac-text">虎</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="兔"><span class="zodiac-icon">🐰</span><span class="zodiac-text">兔</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="龙"><span class="zodiac-icon">🐲</span><span class="zodiac-text">龙</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="蛇"><span class="zodiac-icon">🐍</span><span class="zodiac-text">蛇</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="马"><span class="zodiac-icon">🐴</span><span class="zodiac-text">马</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="羊"><span class="zodiac-icon">🐑</span><span class="zodiac-text">羊</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="猴"><span class="zodiac-icon">🐵</span><span class="zodiac-text">猴</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="鸡"><span class="zodiac-icon">🐔</span><span class="zodiac-text">鸡</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="狗"><span class="zodiac-icon">🐶</span><span class="zodiac-text">狗</span></label>
+              <label class="zodiac-option"><input type="radio" name="teacherZodiac" value="猪"><span class="zodiac-icon">🐷</span><span class="zodiac-text">猪</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: 星座 （选择生肖后展开） -->
+        <div class="step step-3" id="step3">
+          <div class="step-header">
+            <span class="step-number">3</span>
+            <span class="step-title">选择你的星座</span>
+          </div>
+          <div class="step-body">
+            <div class="star-sign-select" id="starSignSelect">
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="白羊座"><span class="star-icon">♈</span><span class="star-text">白羊</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="金牛座"><span class="star-icon">♉</span><span class="star-text">金牛</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="双子座"><span class="star-icon">♊</span><span class="star-text">双子</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="巨蟹座"><span class="star-icon">♋</span><span class="star-text">巨蟹</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="狮子座"><span class="star-icon">♌</span><span class="star-text">狮子</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="处女座"><span class="star-icon">♍</span><span class="star-text">处女</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="天秤座"><span class="star-icon">♎</span><span class="star-text">天秤</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="天蝎座"><span class="star-icon">♏</span><span class="star-text">天蝎</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="射手座"><span class="star-icon">♐</span><span class="star-text">射手</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="摩羯座"><span class="star-icon">♑</span><span class="star-text">摩羯</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="水瓶座"><span class="star-icon">♒</span><span class="star-text">水瓶</span></label>
+              <label class="star-option"><input type="radio" name="teacherStarSign" value="双鱼座"><span class="star-icon">♓</span><span class="star-text">双鱼</span></label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 错误提示 -->
         <div class="error-message" id="nameError"></div>
 
-        <!-- 性别选择 -->
-        <div class="gender-select">
-          <label class="gender-option selected">
-            <input type="radio" name="teacherGender" value="男" checked>
-            <span class="gender-icon">👨</span>
-            <span class="gender-text">男老师</span>
-          </label>
-          <label class="gender-option">
-            <input type="radio" name="teacherGender" value="女">
-            <span class="gender-icon">👩</span>
-            <span class="gender-text">女老师</span>
-          </label>
-          <label class="gender-option">
-            <input type="radio" name="teacherGender" value="青鸾">
-            <span class="gender-icon">🦚</span>
-            <span class="gender-text">青鸾</span>
-          </label>
+        <!-- 操作按钮组 -->
+        <div class="action-buttons">
+          <button id="newGameBtn" class="btn-primary">
+            <span class="btn-text">开始游戏</span>
+          </button>
+          <div class="btn-row">
+            <button id="leaderboardBtn" class="btn-secondary">
+              <span class="btn-text">排行榜</span>
+            </button>
+            <button id="recoverTeacherBtn" class="btn-secondary">
+              <span class="btn-text">找回老师</span>
+            </button>
+          </div>
         </div>
 
-        <!-- 新建游戏按钮 -->
-        <button id="newGameBtn" class="new-game-btn">
-          <span class="btn-icon">🎮</span>
-          <span class="btn-text">新建游戏</span>
-        </button>
-
-        <!-- 全服排行榜按钮 -->
-        <button id="leaderboardBtn" class="leaderboard-btn">
-          <span class="btn-icon">🏆</span>
-          <span class="btn-text">全服排行榜</span>
-        </button>
       </div>
 
       <!-- 历史存档列表 -->
       <div class="saves-section">
-        <h3 class="saves-title">📁 历史存档</h3>
+        <h3 class="saves-title">历史存档</h3>
         <div id="savesList" class="saves-list">
           <!-- 动态生成存档卡片 -->
         </div>
         <div id="noSavesTip" class="no-saves-tip">暂无存档记录</div>
       </div>
 
-      <div class="decorations">
-        <span class="float-item" style="--delay:0s; --x:-120px; --y:60px">📚</span>
-        <span class="float-item" style="--delay:0.5s; --x:130px; --y:-40px">✏️</span>
-        <span class="float-item" style="--delay:1s; --x:-100px; --y:-80px">🎒</span>
-        <span class="float-item" style="--delay:1.5s; --x:110px; --y:70px">📐</span>
-        <span class="float-item" style="--delay:2s; --x:0px; --y:100px">🍎</span>
-      </div>
     </div>
   </div>
 
